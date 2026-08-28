@@ -69,8 +69,16 @@ const COMMON_UNIFORMS = /* glsl */`
   uniform vec3  uLightColorA, uLightColorB, uAmbient;
   uniform float uPointerForce, uTurbulence, uIdleSpeed;
   uniform vec3  uFlowDir;
+  uniform vec2  uSpan;          /* half-extent of the particle volume (x, y) */
   attribute vec3  aOrigin;
   attribute float aBright;
+
+  /* Keep a particle inside the volume without collapsing it toward centre. */
+  vec3 wrapSpan(vec3 p){
+    vec2 full = uSpan * 2.0;
+    p.xy = fract(p.xy/full + 0.5)*full - uSpan;
+    return p;
+  }
 `
 
 /* ── Position helper: fluid offset + curl + wrap ──────────── */
@@ -85,8 +93,7 @@ const makePositionGLSL = (fluidUniform: string, fluidScale: number, noiseScale: 
     pos += curlNoise(pos*${noiseScale.toFixed(2)} + vec3(t*0.08,t*0.06,t*0.045)) * uTurbulence * 0.45;
     pos += uFlowDir * uTime * 0.003;
     /* wrap — apply AFTER displacement so offset is preserved within cycle */
-    pos = fract(pos*0.25+0.5)*4.0-2.0;
-    return pos;
+    return wrapSpan(pos);
   }
 `
 
@@ -150,8 +157,8 @@ export const mediumVert = /* glsl */`
     /* density field: discard sparse areas */
     float dn = snoise(aOrigin*0.55+vec3(uTime*0.008,0.,0.))*0.5+0.5;
     float density = aCluster*0.65 + dn*0.35;
-    if(density < 0.36){ gl_Position=vec4(9999.); gl_PointSize=0.; return; }
-    pos = fract(pos*0.25+0.5)*4.0-2.0;
+    if(density < 0.30){ gl_Position=vec4(9999.); gl_PointSize=0.; return; }
+    pos = wrapSpan(pos);
     float fog = clamp((1.0-depth)*0.35+(1.0-aBright)*0.10, 0.0, 1.0);
     float lp  = lightProximity(pos, uTime);
     vColor = mix(computeLight(pos, aBright, uLightColorA, uLightColorB, uAmbient, uTime),
@@ -196,7 +203,7 @@ export const largeVert = /* glsl */`
     float t = uTime * uIdleSpeed * 0.6;
     pos += curlNoise(pos*0.22+vec3(t*0.05,t*0.04,t*0.03)) * uTurbulence * 0.35;
     pos += uFlowDir * uTime * 0.002;
-    pos = fract(pos*0.25+0.5)*4.0-2.0;
+    pos = wrapSpan(pos);
     float lp  = lightProximity(pos, uTime);
     float fog = clamp((1.0-depth)*0.45, 0.0, 1.0);
     vec3 base = uAmbient*0.22;

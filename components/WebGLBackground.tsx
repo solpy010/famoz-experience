@@ -13,14 +13,30 @@ import {
   smokeVert, smokeFrag,
   shaftVert, shaftFrag,
 } from './webgl/shaders'
-import { buildMicroGeometry, buildClusteredGeometry } from './webgl/particleGeometry'
+import { buildMicroGeometry, buildClusteredGeometry, type Span } from './webgl/particleGeometry'
 
 /* ── Particle counts per GPU tier ──────────────────────────── */
-function mkCounts(tier: 0|1|2|3): [number, number, number] {
-  if (tier === 3) return [18_000, 55_000, 12_000]
-  if (tier === 2) return [ 9_000, 28_000,  6_000]
-  if (tier === 1) return [ 3_000, 10_000,  2_000]
-  return [0, 0, 0]
+/* Counts are tuned for a 16:9 frame; wider frames get proportionally more so
+   density per screen area stays constant instead of thinning out. */
+function mkCounts(tier: 0|1|2|3, aspect: number): [number, number, number] {
+  const k = Math.min(Math.max(aspect / 1.78, 0.85), 1.5)
+  const base: [number, number, number] =
+      tier === 3 ? [28_000, 82_000, 15_000]
+    : tier === 2 ? [14_000, 42_000,  8_000]
+    : tier === 1 ? [ 4_500, 15_000,  2_600]
+    :              [0, 0, 0]
+  return [Math.round(base[0]*k), Math.round(base[1]*k), Math.round(base[2]*k)]
+}
+
+/**
+ * Half-extent of the particle volume, sized so the field reaches the edges of
+ * the frustum at mid depth. A fixed cube leaves the viewport's left and right
+ * thirds empty on any landscape screen.
+ */
+const Z_MID = -1.0
+function computeSpan(camera: THREE.PerspectiveCamera): Span {
+  const halfH = Math.tan((camera.fov * Math.PI/180) * 0.5) * (camera.position.z - Z_MID)
+  return { x: halfH * camera.aspect * 1.05, y: halfH * 1.15 }
 }
 
 /* ── Colored dark section backgrounds ──────────────────────── */
@@ -38,11 +54,12 @@ const SECTION_BG: Record<string, string> = {
 function smoothstep(t: number) { return t*t*(3-2*t) }
 
 /* ── Shared uniform factory ─────────────────────────────────── */
-function makeBaseUniforms(p0: typeof PRESETS.hero, dpr: number, size: number) {
+function makeBaseUniforms(p0: typeof PRESETS.hero, dpr: number, size: number, span: THREE.Vector2) {
   return {
     uTime:         { value: 0 },
     uSize:         { value: size },
     uDPR:          { value: dpr },
+    uSpan:         { value: span },
     uLightColorA:  { value: new THREE.Vector3(...p0.lightColorA) },
     uLightColorB:  { value: new THREE.Vector3(...p0.lightColorB) },
     uAmbient:      { value: new THREE.Vector3(...p0.ambientColor) },
@@ -76,7 +93,7 @@ export default function WebGLBackground() {
     if (!canvas) return
 
     const tier = detectTier()
-    const [cntMicro, cntMedium, cntLarge] = mkCounts(tier)
+    const [cntMicro, cntMedium, cntLarge] = mkCounts(tier, window.innerWidth/window.innerHeight)
     if (tier === 0 || cntMedium === 0) return
 
     const dpr = Math.min(window.devicePixelRatio, tier >= 3 ? 1.5 : 1.0)
@@ -92,9 +109,12 @@ export default function WebGLBackground() {
     const p0   = PRESETS.hero
     const SIZE = tier >= 3 ? 1.9 : tier === 2 ? 1.7 : 1.5
 
+    const span    = computeSpan(camera)
+    const spanVec = new THREE.Vector2(span.x, span.y)
+
     /* ── Micro particles ─────────────────────────────── */
-    const microGeo  = buildMicroGeometry(cntMicro)
-    const microUnis = { ...makeBaseUniforms(p0, dpr, SIZE), uFluidFast: { value: new THREE.Vector2(0,0) } }
+    const microGeo  = buildMicroGeometry(cntMicro, span)
+    const microUnis = { ...makeBaseUniforms(p0, dpr, SIZE, spanVec), uFluidFast: { value: new THREE.Vector2(0,0) } }
     scene.add(new THREE.Points(microGeo, new THREE.ShaderMaterial({
       vertexShader: microVert, fragmentShader: microFrag,
       uniforms: microUnis, transparent: true, depthWrite: false,
@@ -102,9 +122,9 @@ export default function WebGLBackground() {
     })))
 
     /* ── Medium clustered splats ─────────────────────── */
-    const medGeo  = buildClusteredGeometry(cntMedium)
+    const medGeo  = buildClusteredGeometry(cntMedium, span)
     const medUnis = {
-      ...makeBaseUniforms(p0, dpr, SIZE),
+      ...makeBaseUniforms(p0, dpr, SIZE, spanVec),
       uFluidMid:    { value: new THREE.Vector2(0,0) },
       uFluidOffset: { value: new THREE.Vector2(0,0) },
     }
@@ -115,9 +135,9 @@ export default function WebGLBackground() {
     })))
 
     /* ── Large atmospheric splats ────────────────────── */
-    const largeGeo  = buildClusteredGeometry(cntLarge)
+    const largeGeo  = buildClusteredGeometry(cntLarge, span)
     const largeUnis = {
-      ...makeBaseUniforms(p0, dpr, SIZE),
+      ...makeBaseUniforms(p0, dpr, SIZE, spanVec),
       uFluidSlow:   { value: new THREE.Vector2(0,0) },
       uFluidOffset: { value: new THREE.Vector2(0,0) },
     }
@@ -135,6 +155,7 @@ export default function WebGLBackground() {
     ]
     const smokePlaneGeo = new THREE.PlaneGeometry(1,1)
     const smokeMats: THREE.ShaderMaterial[] = []
+    const smokeMeshes: THREE.Mesh[] = []
     const smokeFluidOff = new THREE.Vector2(0,0)
     for (const def of smokeDefs) {
       const sm = new THREE.ShaderMaterial({
@@ -148,8 +169,9 @@ export default function WebGLBackground() {
         blending: THREE.AdditiveBlending,
       })
       const m = new THREE.Mesh(smokePlaneGeo, sm)
-      m.position.z = def.z; m.scale.setScalar(def.scale)
-      scene.add(m); smokeMats.push(sm)
+      m.position.z = def.z; m.scale.set(def.scale*camera.aspect, def.scale, 1)
+      m.userData.baseScale = def.scale
+      scene.add(m); smokeMats.push(sm); smokeMeshes.push(m)
     }
 
     /* ── Light shafts ────────────────────────────────── */
@@ -212,6 +234,12 @@ export default function WebGLBackground() {
     const onResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight)
       camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix()
+      const s = computeSpan(camera)
+      spanVec.set(s.x, s.y)
+      for (const m of smokeMeshes) {
+        const b = m.userData.baseScale as number
+        m.scale.set(b*camera.aspect, b, 1)
+      }
     }
     window.addEventListener('resize', onResize)
     if (bgEl) bgEl.style.background = SECTION_BG.hero
