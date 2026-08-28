@@ -131,50 +131,76 @@ export default function WorksFilm() {
     >
       <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden' }}>
 
-        {/* ── Fullscreen image stack ── */}
-        {PROJECTS.map((proj, pi) =>
-          proj.images.map((src, ii) => {
-            const isActive = pi === activeProject && ii === activeImage
-            // fade: entering = current slide, exiting = next arrives
-            const isNext = pi === activeProject && ii === activeImage + 1
-            const isPrev = pi === activeProject && ii === activeImage - 1
-            const prevProject = pi === activeProject - 1 && ii === PROJECTS[pi].images.length - 1
-
-            let opacity = 0
-            if (isActive) opacity = 1
-            else if (isNext) opacity = Math.max(0, (imageProgress - 0.6) / 0.4)
-            else if (isPrev || prevProject) opacity = 0
-
-            return (
-              <img
-                key={`${proj.id}-${ii}`}
-                src={src}
-                alt={`${proj.title} ${ii + 1}`}
-                style={{
-                  position: 'absolute', inset: 0,
-                  width: '100%', height: '100%',
-                  objectFit: 'cover',
-                  opacity,
-                  transition: isActive || isNext ? `opacity 0.8s ${EASE}` : 'none',
-                  willChange: 'opacity',
-                }}
-              />
-            )
-          })
-        )}
-
-        {/* Dark overlay */}
+        {/* ── Image display area — contain so no distortion ── */}
+        {/* Reserve bottom ~28% for text overlay */}
         <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(to top, rgba(8,8,8,0.92) 0%, rgba(8,8,8,0.3) 45%, rgba(8,8,8,0.15) 100%)',
+          position: 'absolute',
+          top: 0, left: 0, right: 0,
+          bottom: '28%',
+          background: `#080808`,
+          overflow: 'hidden',
+        }}>
+          {/* Project-tinted background wash */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: `radial-gradient(ellipse 70% 70% at 50% 40%, ${project.accent}14 0%, transparent 70%)`,
+            transition: `background 0.8s ${EASE}`,
+            pointerEvents: 'none',
+          }} />
+
+          {PROJECTS.map((proj, pi) =>
+            proj.images.map((src, ii) => {
+              const isActive = pi === activeProject && ii === activeImage
+              const isNext = pi === activeProject && ii === activeImage + 1
+              const isPrev = pi === activeProject && ii === activeImage - 1
+              const prevProject = pi === activeProject - 1 && ii === PROJECTS[pi].images.length - 1
+
+              let opacity = 0
+              if (isActive) opacity = 1
+              else if (isNext) opacity = Math.max(0, (imageProgress - 0.6) / 0.4)
+              else if (isPrev || prevProject) opacity = 0
+
+              return (
+                <img
+                  key={`${proj.id}-${ii}`}
+                  src={src}
+                  alt={`${proj.title} ${ii + 1}`}
+                  style={{
+                    position: 'absolute', inset: 0,
+                    width: '100%', height: '100%',
+                    objectFit: 'contain',
+                    objectPosition: 'center center',
+                    padding: 'clamp(1rem, 2vw, 2.5rem)',
+                    opacity,
+                    transition: isActive || isNext ? `opacity 0.8s ${EASE}` : 'none',
+                    willChange: 'opacity',
+                  }}
+                />
+              )
+            })
+          )}
+        </div>
+
+        {/* Separator line between image and info */}
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: '28%',
+          height: '1px',
+          background: `linear-gradient(90deg, transparent, ${project.accent}40, transparent)`,
+          transition: `background 0.8s ${EASE}`,
+        }} />
+
+        {/* Text info area background */}
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%',
+          background: '#080808',
           zIndex: 1,
         }} />
 
         {/* ── Section header (visible only in header zone) ── */}
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 3,
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: '28%', zIndex: 3,
           display: 'flex', alignItems: 'flex-end',
-          padding: 'var(--section-gap) var(--gutter)',
+          padding: 'var(--section-gap) var(--gutter) clamp(2rem,4vh,3rem)',
           opacity: inHeader ? 1 : 0,
           transform: inHeader ? 'translateY(0)' : 'translateY(-16px)',
           transition: `opacity 0.6s ${EASE}, transform 0.6s ${EASE}`,
@@ -196,8 +222,9 @@ export default function WorksFilm() {
 
         {/* ── Project info overlay ── */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 4,
-          padding: 'clamp(2rem, 5vh, 4rem) var(--gutter)',
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '28%', zIndex: 4,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: '0 var(--gutter)',
           opacity: inHeader ? 0 : 1,
           transform: inHeader ? 'translateY(20px)' : 'translateY(0)',
           transition: `opacity 0.6s ${EASE}, transform 0.6s ${EASE}`,
@@ -277,7 +304,7 @@ export default function WorksFilm() {
 
           {/* Project index dots */}
           <div style={{
-            position: 'absolute', right: 'var(--gutter)', top: '50%',
+            position: 'absolute', right: 'var(--gutter)', top: '-100%',
             transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '10px',
           }}>
             {PROJECTS.map((_, pi) => (
