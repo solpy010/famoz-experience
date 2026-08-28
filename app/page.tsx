@@ -6,6 +6,7 @@ import WhatWeCreate from '@/components/WhatWeCreate'
 import ValueScene from '@/components/ValueScene'
 import PublicValue from '@/components/PublicValue'
 import WorksFilm from '@/components/WorksFilm'
+import MascotScene from '@/components/MascotScene'
 import EndingScene from '@/components/EndingScene'
 import ParallaxSystem from '@/components/ParallaxSystem'
 
@@ -32,6 +33,7 @@ export default function Home() {
       {!introComplete && <IntroSequence onEntered={handleEntered} />}
 
       <HeroScene introComplete={introComplete} />
+      <MascotScene />
       <WhatWeCreate />
       <ValueScene />
       <PublicValue />
