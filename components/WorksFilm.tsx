@@ -9,7 +9,12 @@ type Project = {
   desc: string
   tags: string[]
   accent: string
-  images: string[]  // /works/xxx.png paths
+  images: string[]
+  // Desktop: always 'contain'. Mobile cover exceptions:
+  // alwaysContain=true → contain even on mobile (flow diagrams, UI screenshots)
+  // mobilePosition → object-position for cover mode on mobile
+  alwaysContain?: boolean
+  mobilePosition?: string  // e.g. 'center top', '50% 30%'
 }
 
 const PROJECTS: Project[] = [
@@ -20,6 +25,7 @@ const PROJECTS: Project[] = [
     tags: ['공간 연출', '영상 콘텐츠', '관람 경험'],
     accent: '#3DC992',
     images: ['/works/expo-01.png', '/works/expo-02.png', '/works/expo-03.png'],
+    mobilePosition: 'center center',
   },
   {
     id: 'apec',
@@ -28,6 +34,7 @@ const PROJECTS: Project[] = [
     tags: ['미디어아트', '빛·영상 동기화', '공공 설치'],
     accent: '#52BFFF',
     images: ['/works/apec-01.png', '/works/apec-02.png', '/works/apec-03.png'],
+    mobilePosition: 'center center',
   },
   {
     id: 'sports',
@@ -36,6 +43,7 @@ const PROJECTS: Project[] = [
     tags: ['인터랙티브', '게임 연출', '체험 설계'],
     accent: '#E8955A',
     images: ['/works/sports-01.png', '/works/sports-02.png', '/works/sports-03.png', '/works/sports-04.png'],
+    mobilePosition: 'center 30%',  // 핵심 액션 화면 상단부
   },
   {
     id: 'forest',
@@ -44,6 +52,7 @@ const PROJECTS: Project[] = [
     tags: ['자연형 미디어', '생성 그래픽', '몰입 환경'],
     accent: '#3DC992',
     images: ['/works/forest-01.png', '/works/forest-02.png', '/works/forest-03.png'],
+    mobilePosition: 'center center',
   },
   {
     id: 'hospital',
@@ -52,6 +61,7 @@ const PROJECTS: Project[] = [
     tags: ['AI 안내', '동선 서비스', '공간 지능'],
     accent: '#C07AB5',
     images: ['/works/hospital-01.png', '/works/hospital-02.png', '/works/hospital-03.png', '/works/hospital-04.png'],
+    alwaysContain: true,  // 플로우 다이어그램 — 전체 보임 필수
   },
   {
     id: 'immersive',
@@ -60,6 +70,7 @@ const PROJECTS: Project[] = [
     tags: ['몰입형 전시', '미디어 파사드', '360° 연출'],
     accent: '#C07AB5',
     images: ['/works/immersive-01.png', '/works/immersive-02.png', '/works/immersive-03.png', '/works/immersive-04.png'],
+    mobilePosition: 'center 40%',  // 중앙 몰입 공간 강조
   },
 ]
 
@@ -80,9 +91,22 @@ function getProjectRanges() {
 const RANGES = getProjectRanges()
 const TOTAL_VH = RANGES[RANGES.length - 1].end
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return mobile
+}
+
 export default function WorksFilm() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scrollVH, setScrollVH] = useState(0)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const onScroll = () => {
@@ -131,12 +155,12 @@ export default function WorksFilm() {
     >
       <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden' }}>
 
-        {/* ── Image display area — contain so no distortion ── */}
-        {/* Reserve bottom ~28% for text overlay */}
+        {/* ── Image display area ── */}
+        {/* Desktop: bottom 28% reserved for text. Mobile: bottom 38% (more text lines) */}
         <div style={{
           position: 'absolute',
           top: 0, left: 0, right: 0,
-          bottom: '28%',
+          bottom: isMobile ? '38%' : '28%',
           background: `#080808`,
           overflow: 'hidden',
         }}>
@@ -160,6 +184,13 @@ export default function WorksFilm() {
               else if (isNext) opacity = Math.max(0, (imageProgress - 0.6) / 0.4)
               else if (isPrev || prevProject) opacity = 0
 
+              // Determine display mode per project + viewport
+              const useContain = !isMobile || proj.alwaysContain
+              const fit = useContain ? 'contain' : 'cover'
+              const pos = useContain
+                ? 'center center'
+                : (proj.mobilePosition ?? 'center center')
+
               return (
                 <img
                   key={`${proj.id}-${ii}`}
@@ -168,9 +199,10 @@ export default function WorksFilm() {
                   style={{
                     position: 'absolute', inset: 0,
                     width: '100%', height: '100%',
-                    objectFit: 'contain',
-                    objectPosition: 'center center',
-                    padding: 'clamp(1rem, 2vw, 2.5rem)',
+                    objectFit: fit,
+                    objectPosition: pos,
+                    // contain 모드에서만 padding으로 여백 확보
+                    padding: useContain ? 'clamp(0.75rem, 1.5vw, 2rem)' : '0',
                     opacity,
                     transition: isActive || isNext ? `opacity 0.8s ${EASE}` : 'none',
                     willChange: 'opacity',
@@ -183,7 +215,7 @@ export default function WorksFilm() {
 
         {/* Separator line between image and info */}
         <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: '28%',
+          position: 'absolute', left: 0, right: 0, bottom: isMobile ? '38%' : '28%',
           height: '1px',
           background: `linear-gradient(90deg, transparent, ${project.accent}40, transparent)`,
           transition: `background 0.8s ${EASE}`,
@@ -191,7 +223,7 @@ export default function WorksFilm() {
 
         {/* Text info area background */}
         <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%',
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: isMobile ? '38%' : '28%',
           background: '#080808',
           zIndex: 1,
         }} />
@@ -222,7 +254,8 @@ export default function WorksFilm() {
 
         {/* ── Project info overlay ── */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '28%', zIndex: 4,
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          height: isMobile ? '38%' : '28%', zIndex: 4,
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
           padding: '0 var(--gutter)',
           opacity: inHeader ? 0 : 1,
