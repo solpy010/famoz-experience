@@ -4,100 +4,128 @@
  */
 
 export type ScenePreset = {
-  colorA: [number, number, number]  // RGB 0-1
+  colorA: [number, number, number]
   colorB: [number, number, number]
-  density: number       // 0-1 multiplier on total particle count
-  turbulence: number    // curl noise strength
+  density: number
+  turbulence: number
   flowDir: [number, number, number]
-  pointerForce: number  // 0-1
-  bloomStrength: number // 0-1
-  idleSpeed: number     // time multiplier for curl noise
+  pointerForce: number
+  bloomStrength: number
+  idleSpeed: number
+  // Volumetric light colors (particles RECEIVE this light, not emit)
+  lightColorA: [number, number, number]
+  lightColorB: [number, number, number]
+  // Ambient dark fog/smoke tint
+  ambientColor: [number, number, number]
 }
 
 export const PRESETS: Record<string, ScenePreset> = {
   hero: {
-    colorA: [0.42, 0.20, 0.55],   // deep plum
-    colorB: [0.78, 0.45, 0.72],   // warm pink / violet
+    colorA: [0.42, 0.20, 0.55],
+    colorB: [0.78, 0.45, 0.72],
     density: 0.65,
-    turbulence: 0.10,
-    flowDir: [0, 0.3, 0],
-    pointerForce: 0.28,
+    turbulence: 0.042,
+    flowDir: [0, 0.12, 0],
+    pointerForce: 0.55,
     bloomStrength: 0.55,
-    idleSpeed: 0.50,
+    idleSpeed: 0.044,
+    lightColorA: [0.70, 0.25, 0.82],   // deep violet
+    lightColorB: [0.92, 0.40, 0.58],   // warm pink
+    ambientColor: [0.04, 0.01, 0.07],
   },
   whatA: {
-    colorA: [0.18, 0.72, 0.55],   // emerald
-    colorB: [0.25, 0.18, 0.45],   // deep plum
+    colorA: [0.18, 0.72, 0.55],
+    colorB: [0.25, 0.18, 0.45],
     density: 0.80,
-    turbulence: 0.14,
-    flowDir: [0.5, 0.1, 0],
-    pointerForce: 0.30,
+    turbulence: 0.050,
+    flowDir: [0.18, 0.06, 0],
+    pointerForce: 0.58,
     bloomStrength: 0.40,
-    idleSpeed: 0.55,
+    idleSpeed: 0.048,
+    lightColorA: [0.12, 0.85, 0.58],   // emerald
+    lightColorB: [0.10, 0.32, 0.82],   // deep blue
+    ambientColor: [0.01, 0.05, 0.03],
   },
   whatB: {
-    colorA: [0.88, 0.52, 0.28],   // coral
-    colorB: [0.78, 0.62, 0.20],   // gold
-    density: 0.90,
-    turbulence: 0.20,
+    colorA: [0.88, 0.52, 0.28],
+    colorB: [0.78, 0.62, 0.20],
+    density: 0.85,
+    turbulence: 0.060,
     flowDir: [0, 0, 0],
-    pointerForce: 0.70,           // strong reaction
+    pointerForce: 0.72,
     bloomStrength: 0.50,
-    idleSpeed: 0.70,
+    idleSpeed: 0.056,
+    lightColorA: [0.94, 0.54, 0.15],   // amber
+    lightColorB: [0.88, 0.75, 0.12],   // gold
+    ambientColor: [0.07, 0.03, 0.01],
   },
   whatC: {
-    colorA: [0.45, 0.25, 0.72],   // violet
-    colorB: [0.22, 0.70, 0.90],   // cyan
+    colorA: [0.45, 0.25, 0.72],
+    colorB: [0.22, 0.70, 0.90],
     density: 0.75,
-    turbulence: 0.12,
-    flowDir: [0.2, 0.4, 0],
-    pointerForce: 0.40,
+    turbulence: 0.045,
+    flowDir: [0.08, 0.16, 0],
+    pointerForce: 0.62,
     bloomStrength: 0.45,
-    idleSpeed: 0.60,
+    idleSpeed: 0.050,
+    lightColorA: [0.15, 0.85, 0.95],   // cyan
+    lightColorB: [0.58, 0.18, 0.88],   // violet
+    ambientColor: [0.02, 0.03, 0.07],
   },
   value: {
-    colorA: [0.93, 0.90, 0.82],   // warm ivory
-    colorB: [0.52, 0.28, 0.72],   // violet
+    colorA: [0.93, 0.90, 0.82],
+    colorB: [0.52, 0.28, 0.72],
     density: 0.70,
-    turbulence: 0.13,
-    flowDir: [0, 0.5, 0],
-    pointerForce: 0.35,
+    turbulence: 0.048,
+    flowDir: [0, 0.18, 0],
+    pointerForce: 0.60,
     bloomStrength: 0.45,
-    idleSpeed: 0.55,
+    idleSpeed: 0.046,
+    lightColorA: [0.90, 0.82, 0.58],   // warm ivory
+    lightColorB: [0.55, 0.28, 0.80],   // violet
+    ambientColor: [0.05, 0.04, 0.02],
   },
   publicValue: {
-    colorA: [0.18, 0.72, 0.55],   // emerald
-    colorB: [0.22, 0.70, 0.90],   // cyan
+    colorA: [0.18, 0.72, 0.55],
+    colorB: [0.22, 0.70, 0.90],
     density: 0.75,
-    turbulence: 0.15,
-    flowDir: [-0.2, 0.2, 0],
-    pointerForce: 0.40,
+    turbulence: 0.052,
+    flowDir: [-0.08, 0.10, 0],
+    pointerForce: 0.62,
     bloomStrength: 0.40,
-    idleSpeed: 0.60,
+    idleSpeed: 0.048,
+    lightColorA: [0.20, 0.82, 0.55],   // emerald
+    lightColorB: [0.88, 0.84, 0.65],   // ivory
+    ambientColor: [0.01, 0.04, 0.02],
   },
   works: {
-    colorA: [0.72, 0.45, 0.15],   // amber — overridden per project
+    colorA: [0.72, 0.45, 0.15],
     colorB: [0.55, 0.30, 0.55],
     density: 0.65,
-    turbulence: 0.18,
-    flowDir: [0.1, 0.1, 0],
-    pointerForce: 0.45,
+    turbulence: 0.055,
+    flowDir: [0.05, 0.05, 0],
+    pointerForce: 0.65,
     bloomStrength: 0.50,
-    idleSpeed: 0.65,
+    idleSpeed: 0.052,
+    lightColorA: [0.88, 0.52, 0.12],   // amber
+    lightColorB: [0.62, 0.35, 0.58],   // warm purple
+    ambientColor: [0.05, 0.02, 0.01],
   },
   ending: {
-    colorA: [0.55, 0.38, 0.18],   // warm brown
-    colorB: [0.78, 0.62, 0.22],   // gold
+    colorA: [0.55, 0.38, 0.18],
+    colorB: [0.78, 0.62, 0.22],
     density: 0.45,
-    turbulence: 0.06,
-    flowDir: [0, 0.15, 0],
-    pointerForce: 0.12,
+    turbulence: 0.028,
+    flowDir: [0, 0.06, 0],
+    pointerForce: 0.35,
     bloomStrength: 0.25,
-    idleSpeed: 0.35,
+    idleSpeed: 0.030,
+    lightColorA: [0.72, 0.52, 0.25],   // warm brown
+    lightColorB: [0.90, 0.82, 0.55],   // warm ivory
+    ambientColor: [0.04, 0.03, 0.01],
   },
 }
 
-/** Linearly interpolate two presets. t = 0 → a, t = 1 → b */
 export function lerpPreset(a: ScenePreset, b: ScenePreset, t: number): ScenePreset {
   const lerp = (x: number, y: number) => x + (y - x) * t
   const lerpV = (u: [number, number, number], v: [number, number, number]): [number, number, number] =>
@@ -111,20 +139,19 @@ export function lerpPreset(a: ScenePreset, b: ScenePreset, t: number): ScenePres
     pointerForce: lerp(a.pointerForce, b.pointerForce),
     bloomStrength: lerp(a.bloomStrength, b.bloomStrength),
     idleSpeed: lerp(a.idleSpeed, b.idleSpeed),
+    lightColorA: lerpV(a.lightColorA, b.lightColorA),
+    lightColorB: lerpV(a.lightColorB, b.lightColorB),
+    ambientColor: lerpV(a.ambientColor, b.ambientColor),
   }
 }
 
-/** Detect GPU tier: 0=fallback, 1=low, 2=mid, 3=high */
 export function detectTier(): 0 | 1 | 2 | 3 {
   if (typeof window === 'undefined') return 2
   const ua = navigator.userAgent.toLowerCase()
   const isMobile = /android|iphone|ipad|ipod/.test(ua)
   if (isMobile) return 1
-
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (prefersReduced) return 0
-
-  // Try to infer from concurrency / memory
   const cores = navigator.hardwareConcurrency ?? 2
   if (cores >= 8) return 3
   if (cores >= 4) return 2
