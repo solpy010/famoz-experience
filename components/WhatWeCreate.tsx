@@ -116,7 +116,7 @@ export default function WhatWeCreate() {
       <section style={{
         position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden',
         display: 'flex', alignItems: 'center',
-        background: 'var(--black)',
+        background: 'transparent',
       }}>
         {/* Far layer — base gradient + parallax */}
         <div

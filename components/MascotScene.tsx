@@ -101,12 +101,12 @@ export default function MascotScene() {
   return (
     <div
       ref={containerRef}
-      style={{ position: 'relative', height: `${TOTAL_VH}vh`, background: 'var(--black)' }}
+      style={{ position: 'relative', height: `${TOTAL_VH}vh`, background: 'transparent' }}
     >
       <section style={{
         position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden',
         display: 'flex', alignItems: 'center',
-        background: 'var(--black)',
+        background: 'transparent',
       }}>
 
         {/* Dynamic background glow per active character */}

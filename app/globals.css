@@ -62,6 +62,14 @@
   --body: clamp(1rem, 1.15vw, 1.18rem);
   --label: clamp(0.62rem, 0.8vw, 0.74rem);
 
+  /* L0 Chromatic Backdrop — 유색 암부. 면적 배경은 반드시 여기서 고른다 */
+  --l0-indigo:   #0A0E19;
+  --l0-petrol:   #0B2024;
+  --l0-plum:     #241329;
+  --l0-graphite: #191721;
+  --l0-charcoal: #211D1C;
+
+  /* 오버레이와 가장자리 음영 전용. 섹션 면적 배경으로 쓰지 말 것 */
   --black: #080808;
   --plum: #110820;
   --text: #EDE8E0;
@@ -79,8 +87,14 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
+/* L0 기저면. WebGLBackground가 마운트되기 전과 reduced-motion(tier 0)에서도
+   화면이 검게 비지 않도록, 저주파 컬러 필드 3개를 겹쳐 둔다. */
 body {
-  background: var(--black);
+  background:
+    radial-gradient(ellipse 90% 70% at 72% 28%, var(--l0-plum) 0%, transparent 62%),
+    radial-gradient(ellipse 80% 75% at 18% 78%, var(--l0-petrol) 0%, transparent 58%),
+    radial-gradient(ellipse 120% 90% at 50% 50%, var(--l0-graphite) 0%, var(--l0-indigo) 100%);
+  background-attachment: fixed;
   color: var(--text);
   font-family: 'A2G', 'Pretendard', -apple-system, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

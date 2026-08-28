@@ -39,16 +39,34 @@ function computeSpan(camera: THREE.PerspectiveCamera): Span {
   return { x: halfH * camera.aspect * 1.05, y: halfH * 1.15 }
 }
 
-/* ── Colored dark section backgrounds ──────────────────────── */
+/* ── L0 Chromatic Backdrop ─────────────────────────────────────
+   장면마다 저주파 컬러 필드를 3개 겹친다: 주광원 방향의 색면, 반대편
+   보조 색면, 그리고 유색 암부 기저면. 단일 radial-gradient는 쓰지 않는다.
+   절대 블랙은 가장자리 감쇄에서만 나타난다. */
+const L0 = {
+  indigo:   '#0A0E19',
+  petrol:   '#0B2024',
+  plum:     '#241329',
+  graphite: '#191721',
+  charcoal: '#211D1C',
+  emerald:  '#0A2320',
+} as const
+
+const field = (a: string, b: string, base: string) => [
+  `radial-gradient(ellipse 85% 70% at 70% 30%, ${a} 0%, transparent 60%)`,
+  `radial-gradient(ellipse 75% 80% at 20% 75%, ${b} 0%, transparent 58%)`,
+  `radial-gradient(ellipse 130% 95% at 50% 50%, ${base} 0%, ${L0.indigo} 78%, #05070C 100%)`,
+].join(', ')
+
 const SECTION_BG: Record<string, string> = {
-  hero:        'radial-gradient(ellipse 90% 75% at 68% 38%, #28172f 0%, #211326 30%, #17151f 62%, #090d18 100%)',
-  whatA:       'radial-gradient(ellipse 85% 70% at 28% 55%, #11162b 0%, #0b2025 35%, #090d18 68%, #060810 100%)',
-  whatB:       'radial-gradient(ellipse 95% 65% at 62% 38%, #321b1a 0%, #28120a 35%, #17100a 65%, #0e0805 100%)',
-  whatC:       'radial-gradient(ellipse 80% 72% at 75% 35%, #0b1a2e 0%, #11162b 32%, #17151f 62%, #090d18 100%)',
-  value:       'radial-gradient(ellipse 95% 68% at 50% 52%, #211c1b 0%, #1a1509 35%, #12100a 65%, #0a0807 100%)',
-  publicValue: 'radial-gradient(ellipse 80% 65% at 35% 55%, #0b2025 0%, #11162b 32%, #090d18 65%, #060810 100%)',
-  works:       'radial-gradient(ellipse 85% 68% at 65% 40%, #2a1508 0%, #1e0f05 35%, #130c05 65%, #090604 100%)',
-  ending:      'radial-gradient(ellipse 88% 68% at 50% 68%, #211c1b 0%, #1a150a 35%, #120f08 62%, #090704 100%)',
+  hero:        field(L0.plum,     L0.graphite, L0.graphite),  // Deep Plum + Graphite Indigo
+  whatA:       field(L0.graphite, L0.petrol,   L0.indigo),    // 이야기 공간
+  whatB:       field(L0.plum,     L0.charcoal, L0.charcoal),  // 상호작용 공간
+  whatC:       field(L0.petrol,   L0.indigo,   L0.indigo),    // AI 도움 공간
+  value:       field(L0.plum,     L0.charcoal, L0.graphite),  // 상호작용 계열
+  publicValue: field(L0.emerald,  L0.graphite, L0.indigo),    // Deep Emerald + Graphite
+  works:       field(L0.charcoal, L0.plum,     L0.charcoal),  // 이미지 유래 (임시)
+  ending:      field(L0.charcoal, L0.plum,     L0.charcoal),  // Warm Charcoal + Deep Plum
 }
 
 function smoothstep(t: number) { return t*t*(3-2*t) }

@@ -15,7 +15,7 @@ export default function PublicValue() {
       id="public"
       style={{
         position: 'relative', overflow: 'hidden',
-        background: 'var(--black)', paddingBlock: 'var(--section-gap)',
+        background: 'transparent', paddingBlock: 'var(--section-gap)',
         minHeight: '100dvh', display: 'flex', alignItems: 'center',
       }}
     >

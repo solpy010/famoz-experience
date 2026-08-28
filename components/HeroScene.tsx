@@ -116,7 +116,7 @@ export default function HeroScene({ introComplete }: Props) {
         flexDirection: 'column',
         justifyContent: 'flex-end',
         paddingBottom: 'clamp(60px, 12vh, 120px)',
-        background: 'var(--black)',
+        background: 'transparent',
         overflow: 'hidden',
       }}
     >

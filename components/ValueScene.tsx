@@ -36,7 +36,7 @@ export default function ValueScene() {
       <section style={{
         position: 'sticky', top: 0,
         height: '100svh', overflow: 'hidden',
-        background: 'var(--black)',
+        background: 'transparent',
         display: 'flex', alignItems: 'center',
       }}>
         {/* Ambient gradient */}
