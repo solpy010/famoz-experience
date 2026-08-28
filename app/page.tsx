@@ -9,6 +9,7 @@ import WorksFilm from '@/components/WorksFilm'
 import MascotScene from '@/components/MascotScene'
 import EndingScene from '@/components/EndingScene'
 import ParallaxSystem from '@/components/ParallaxSystem'
+import WebGLBackground from '@/components/WebGLBackground'
 
 export default function Home() {
   const [introComplete, setIntroComplete] = useState(false)
@@ -28,6 +29,7 @@ export default function Home() {
 
   return (
     <>
+      <WebGLBackground />
       <ParallaxSystem />
 
       {!introComplete && <IntroSequence onEntered={handleEntered} />}
