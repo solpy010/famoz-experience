@@ -2,10 +2,11 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { detectTier } from '../sceneStore'
-import { labParams, labEvents, LAYER_RESPONSE, VIEW_INDEX } from './labParams'
+import { labParams, labEvents, LAYER_RESPONSE, VIEW_INDEX, LAYER_FILTER } from './labParams'
 import { buildSplatField, type Span, type SplatBuffers } from './labGeometry'
 import { splatVert, splatFrag, fogVert, fogFrag } from './labShaders'
 import { MaskField } from './maskField'
+import { spaceVert, spaceFrag } from './spaceFieldShader'
 import type { PointerField } from './pointerField'
 
 /**
@@ -114,6 +115,8 @@ export default function LabCanvas({
       uCoreOcclusion:   { value: labParams.coreOcclusion },
       uDeflect:         { value: labParams.deflect },
       uRevealCap:       { value: 0.25 },
+      uLayerFilter:     { value: -1 },
+      uSplatAniso:      { value: labParams.splatAniso },
       uLagMicro:   { value: LAYER_RESPONSE.micro.lag },
       uLagMedium:  { value: LAYER_RESPONSE.medium.lag },
       uLagLarge:   { value: LAYER_RESPONSE.large.lag },
@@ -155,6 +158,7 @@ export default function LabCanvas({
         micro: labParams.microRatio,
         medium: labParams.mediumRatio,
         additiveRatio: labParams.additiveRatio,
+        nearRatio: labParams.nearRatio,
       })
       mainPoints.geometry = buffers.main
       optPoints.geometry = buffers.optical
@@ -165,6 +169,43 @@ export default function LabCanvas({
     }
     rebuild()
     let lastRebuild = labEvents.rebuild
+
+    /* ── L1 Spatial Field + L2 Volumetric Light ────────
+       파티클보다 먼저 공간의 실루엣을 만든다. 씬에서 가장 먼저 그려지도록
+       renderOrder를 -1로 두고 depthTest를 끈다. */
+    const spaceUnis = {
+      uTime:        { value: 0 },
+      uAspect:      { value: camera.aspect },
+      uFieldMode:   { value: 0 },
+      uWarp:        { value: labParams.warp },
+      uFieldLevel:  { value: labParams.fieldLevel },
+      uCorridor:    { value: labParams.corridor },
+      uShadow:      { value: labParams.shadow },
+      uAmbientCol:  { value: new THREE.Vector3(...labParams.ambient) },
+      uSurfaceCol:  { value: new THREE.Vector3(...labParams.surfaceCol) },
+      uShadowCol:   { value: new THREE.Vector3(...labParams.shadowCol) },
+      uLightOrigin: { value: new THREE.Vector2(...labParams.lightOrigin) },
+      uLightDir:    { value: new THREE.Vector2(...labParams.lightDir) },
+      uWarmOrigin:  { value: new THREE.Vector2(...labParams.warmOrigin) },
+      uConeWidth:   { value: labParams.coneWidth },
+      uConeFalloff: { value: labParams.coneFalloff },
+      uConeLevel:   { value: labParams.coneLevel },
+      uScatterLevel:{ value: labParams.scatterLevel },
+      uReflectLevel:{ value: labParams.reflectLevel },
+      uSideLevel:   { value: labParams.sideLevel },
+      uLightCol:    { value: new THREE.Vector3(...labParams.mainLightColor) },
+      uCoolCol:     { value: new THREE.Vector3(...labParams.coolCol) },
+      uWarmCol:     { value: new THREE.Vector3(...labParams.sideLightColor) },
+    }
+    const spaceMat = new THREE.ShaderMaterial({
+      vertexShader: spaceVert, fragmentShader: spaceFrag, uniforms: spaceUnis,
+      transparent: true, depthWrite: false, depthTest: false,
+      blending: THREE.NormalBlending,
+    })
+    const spaceMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), spaceMat)
+    spaceMesh.frustumCulled = false
+    spaceMesh.renderOrder = -1
+    scene.add(spaceMesh)
 
     /* ── L3 스모그 평면 3층 ───────────────────────────── */
     const fogDefs = [
@@ -222,6 +263,7 @@ export default function LabCanvas({
       camera.aspect = window.innerWidth / window.innerHeight
       camera.updateProjectionMatrix()
       resolution.set(window.innerWidth, window.innerHeight)
+      spaceUnis.uAspect.value = camera.aspect
       span = computeSpan(camera)
       spanVec.set(span.x, span.y)
       pointer.setView(Math.tan((FOV * Math.PI / 180) * 0.5) * (CAM_Z - Z_MID), camera.aspect)
@@ -304,12 +346,44 @@ export default function LabCanvas({
         m.uniforms.uFogScattering.value = p.fogScattering
       }
 
-      // 디버그 뷰별 레이어 표시
-      const showFog   = viewIdx === 0 || viewIdx === 3 || viewIdx === 5 || viewIdx === 8
-      const showSplat = viewIdx === 0 || viewIdx === 4 || (viewIdx >= 5 && viewIdx <= 7)
+      /* space field */
+      spaceUnis.uTime.value = time
+      spaceUnis.uWarp.value = p.warp
+      spaceUnis.uFieldLevel.value = p.fieldLevel
+      spaceUnis.uCorridor.value = p.corridor
+      spaceUnis.uShadow.value = p.shadow
+      spaceUnis.uConeWidth.value = p.coneWidth
+      spaceUnis.uConeFalloff.value = p.coneFalloff
+      spaceUnis.uConeLevel.value = p.coneLevel
+      spaceUnis.uScatterLevel.value = p.scatterLevel
+      spaceUnis.uReflectLevel.value = p.reflectLevel
+      spaceUnis.uSideLevel.value = p.sideLevel
+      v3(spaceUnis.uAmbientCol.value, p.ambient)
+      v3(spaceUnis.uSurfaceCol.value, p.surfaceCol)
+      v3(spaceUnis.uShadowCol.value, p.shadowCol)
+      v3(spaceUnis.uLightCol.value, p.mainLightColor)
+      v3(spaceUnis.uCoolCol.value, p.coolCol)
+      v3(spaceUnis.uWarmCol.value, p.sideLightColor)
+      spaceUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
+      spaceUnis.uLightDir.value.set(p.lightDir[0], p.lightDir[1])
+      spaceUnis.uWarmOrigin.value.set(p.warmOrigin[0], p.warmOrigin[1])
+      spaceUnis.uFieldMode.value = p.view === 'l1' ? 1 : p.view === 'l2' ? 2 : 0
+
+      /* 검수 캡처별 레이어 가시성 */
+      const v = p.view
+      const showSpace = v === 'composite' || v === 'l1' || v === 'l2' || v === 'l1l2'
+      const showFog   = v === 'composite' || v === 'velocity'
+      const layerOnly = LAYER_FILTER[v]
+      const showSplat = v === 'composite' || v === 'masks' || v === 'velocity' || layerOnly !== undefined
+      spaceMesh.visible = showSpace
       for (const m of fogMeshes) m.visible = showFog
       mainPoints.visible = showSplat
-      optPoints.visible = showSplat && viewIdx === 0
+      optPoints.visible = showSplat && v === 'composite'
+      const lf = layerOnly !== undefined ? layerOnly : -1
+      splatUnis.uLayerFilter.value = lf
+      opticalUnis.uLayerFilter.value = lf
+      splatUnis.uSplatAniso.value = p.splatAniso
+      opticalUnis.uSplatAniso.value = p.splatAniso
 
       renderer.render(scene, camera)
       statsRef.current?.({ fps, points: stats.points, coverage: stats.coverage, tier })
@@ -322,6 +396,7 @@ export default function LabCanvas({
       window.removeEventListener('scroll', syncMask)
       buffers?.main.dispose(); buffers?.optical.dispose()
       fogGeo.dispose(); fogMats.forEach(m => m.dispose()); mask.dispose()
+      spaceMesh.geometry.dispose(); spaceMat.dispose()
       splatMat.dispose(); opticalMat.dispose()
       renderer.dispose()
     }

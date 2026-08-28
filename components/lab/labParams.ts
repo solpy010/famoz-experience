@@ -7,9 +7,10 @@
  */
 
 export type DebugView =
-  | 'composite' | 'background' | 'light' | 'fog'
-  | 'splat' | 'velocity' | 'masks' | 'depth'
-  | 'noparticle'
+  | 'composite'                       // 08 최종 합성
+  | 'l0' | 'l1' | 'l2' | 'l1l2'       // 01~04 레이어 분리
+  | 'far' | 'mid' | 'near'            // 05~07 깊이별 splat
+  | 'masks' | 'velocity'              // 12 디버그
 
 export type LabParams = {
   /* ── Composition ─────────────────────────────── */
@@ -63,6 +64,29 @@ export type LabParams = {
   exposureResponse: number
   scatterAnisotropy: number       // Henyey-Greenstein g
 
+  /* ── L1 Spatial field ────────────────────────── */
+  warp: number
+  fieldLevel: number
+  corridor: number
+  shadow: number
+  surfaceCol: [number, number, number]
+  shadowCol: [number, number, number]
+
+  /* ── L2 Volumetric light ─────────────────────── */
+  lightOrigin: [number, number]
+  lightDir: [number, number]
+  warmOrigin: [number, number]
+  coneWidth: number
+  coneFalloff: number
+  coneLevel: number
+  scatterLevel: number
+  reflectLevel: number
+  coolCol: [number, number, number]
+
+  /* ── Splat 형태 ──────────────────────────────── */
+  splatAniso: number              // 흐름 방향으로 늘이는 정도
+  nearRatio: number               // 전체 중 near 레이어 비율 (3~7%)
+
   /* ── Debug ───────────────────────────────────── */
   view: DebugView
   showMasks: boolean
@@ -74,7 +98,7 @@ export type LabParams = {
  */
 export const DEFAULT_PARAMS: LabParams = {
   imageFieldOpacity: 0.30,
-  densityThreshold: 0.30,
+  densityThreshold: 0.38,
   densityContrast: 1.35,
   foregroundDensity: 0.55,
   contentFeather: 0.055,
@@ -123,6 +147,28 @@ export const DEFAULT_PARAMS: LabParams = {
   exposureResponse: 0.55,
   scatterAnisotropy: 0.58,
 
+  /* L1 — 비정형 곡면·통로·음영면 */
+  warp: 0.085,
+  fieldLevel: 1.15,
+  corridor: 0.80,
+  shadow: 0.85,
+  surfaceCol: [0.430, 0.352, 0.485],   // 들어올린 aubergine
+  shadowCol:  [0.026, 0.022, 0.036],
+
+  /* L2 — 좌상단 바깥에서 유입해 우중앙으로 진행 */
+  lightOrigin: [-1.15,  0.55],
+  lightDir:    [ 1.00, -0.42],
+  warmOrigin:  [ 0.52, -0.34],
+  coneWidth: 0.58,
+  coneFalloff: 0.52,
+  coneLevel: 1.0,
+  scatterLevel: 0.88,
+  reflectLevel: 1.70,
+  coolCol: [0.471, 0.584, 0.651],      // mist blue #7895A6
+
+  splatAniso: 0.55,
+  nearRatio: 0.05,
+
   view: 'composite',
   showMasks: false,
 }
@@ -140,9 +186,13 @@ export function requestRebuild() { labEvents.rebuild++ }
 
 /** 디버그 뷰 → 셰이더 uView 값 */
 export const VIEW_INDEX: Record<DebugView, number> = {
-  composite: 0, background: 1, light: 2, fog: 3,
-  splat: 4, velocity: 5, masks: 6, depth: 7,
-  noparticle: 8,
+  composite: 0, l0: 1, l1: 2, l2: 3, l1l2: 4,
+  far: 5, mid: 6, near: 7, masks: 8, velocity: 9,
+}
+
+/** 깊이 레이어 필터. -1 = 전부 */
+export const LAYER_FILTER: Partial<Record<DebugView, number>> = {
+  far: 0, mid: 1, near: 2,
 }
 
 /** 레이어별 반응 지연·힘·복귀 (문서 §10) */

@@ -51,6 +51,23 @@ export default function DebugPanel() {
       deflect:               num('deflect', 0, 1.2, 0.01),
     }, { collapsed: false }),
 
+    Space: folder({
+      warp:          num('warp', 0, 0.30, 0.005),
+      fieldLevel:    num('fieldLevel', 0, 1.6, 0.01),
+      corridor:      num('corridor', 0, 1, 0.01),
+      shadow:        num('shadow', 0, 1, 0.01),
+      surfaceCol:    vec('surfaceCol'),
+      shadowCol:     vec('shadowCol', 0.005),
+      coneWidth:     num('coneWidth', 0.12, 1.4, 0.01),
+      coneFalloff:   num('coneFalloff', 0.05, 2.5, 0.01),
+      coneLevel:     num('coneLevel', 0, 2, 0.01),
+      scatterLevel:  num('scatterLevel', 0, 2, 0.01),
+      reflectLevel:  num('reflectLevel', 0, 3, 0.01),
+      coolCol:       vec('coolCol'),
+      splatAniso:    num('splatAniso', 0, 1.2, 0.01),
+      nearRatio:     num('nearRatio', 0.01, 0.15, 0.005, true),
+    }, { collapsed: false }),
+
     Splat: folder({
       count:            num('count', 8_000, 140_000, 1_000, true),
       microRatio:       num('microRatio', 0.20, 0.70, 0.01, true),
@@ -96,7 +113,7 @@ export default function DebugPanel() {
     Debug: folder({
       view: {
         value: DEFAULT_PARAMS.view,
-        options: ['composite', 'background', 'light', 'fog', 'splat', 'velocity', 'masks', 'depth', 'noparticle'],
+        options: ['composite', 'l0', 'l1', 'l2', 'l1l2', 'far', 'mid', 'near', 'masks', 'velocity'],
         transient: true,
         onChange: (v: DebugView) => { labParams.view = v },
       },

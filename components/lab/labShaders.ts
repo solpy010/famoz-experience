@@ -150,11 +150,14 @@ export const splatVert = /* glsl */`
   uniform float uTauMicro, uTauMedium, uTauLarge;
   uniform float uView;
 
+  uniform float uLayerFilter;   /* -1 전부, 0 far, 1 mid, 2 near */
+  uniform float uSplatAniso;
+
   attribute vec3  aOrigin;
-  attribute float aBright, aDensity, aClass, aSeed;
+  attribute float aBright, aDensity, aClass, aSeed, aBand;
 
   varying vec3  vColor;
-  varying float vAlpha, vSoft;
+  varying float vAlpha, vSoft, vAngle, vAniso;
 
   ${NOISE_GLSL}
   ${STROKE_GLSL}
@@ -203,11 +206,24 @@ export const splatVert = /* glsl */`
     float core = coreMask(suv);   /* A */
     float soft = softMask(suv);   /* B */
 
+    /* ── 깊이 레이어별 초점 분리 (지시서 §4) ──────────────────
+       부드러움을 전체 blur로 만들지 않는다. 레이어마다 대비·채도·초점이 다르다. */
+    float isFar  = step(aBand, 0.5);
+    float isNear = step(1.5, aBand);
+    float isMid  = 1.0 - isFar - isNear;
+
     /* ── 조명 ── */
     /* 흐름이 갈라진 만큼 후경광이 드러난다. 상한을 둬 동시에 번쩍이지 않게. */
     float reveal = 1.0 + clamp(exposure * uExposure, 0.0, uRevealCap);
     float lit;
     vec3  color  = shadeParticle(pos, depth, aBright * reveal, lit);
+
+    /* far: 낮은 대비·낮은 채도 / mid: 가장 또렷 / near: 크고 흐림 */
+    float luma2 = dot(color, vec3(0.299, 0.587, 0.114));
+    color = mix(color, vec3(luma2), isFar * 0.45);
+    color *= isFar * 0.62 + isMid * 1.15 + isNear * 0.78;
+    /* mid는 광원에 닿은 일부만 선명해진다 */
+    color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
 
     /* B. Soft Safety Field — 밝은 입자일수록 강하게 감쇠한다.
        어두운 입자는 남겨 검은 구멍이 생기지 않게 한다. */
@@ -224,6 +240,17 @@ export const splatVert = /* glsl */`
     a *= 1.0 - uCoreOcclusion * smoothstep(0.10, 0.55, core);
 
     /* ── 크기 ── */
+    /* 디버그: 특정 깊이 레이어만 보기 (검수 캡처 05~07) */
+    float wantAll = step(uLayerFilter, -0.5);
+    float keep = wantAll + (1.0 - wantAll) * step(abs(aBand - uLayerFilter), 0.5);
+    a *= keep;
+
+    /* ── 형태 ──
+       원형만 반복하지 않는다. mid의 절반은 흐름 방향으로 늘어난 타원형이라
+       흐름 방향을 판독할 수 있다 (지시서 §5). */
+    vAngle = atan(baseFlow.y, baseFlow.x + 1e-5);
+    vAniso = 1.0 + uSplatAniso * isMid * step(aSeed, 0.5) * (0.5 + aDensity * 0.5);
+
     float baseSize = isMicro * 1.7 + isMedium * 6.0 + isLarge * 30.0;
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
              * (0.45 + depth * 0.75) * (0.72 + lit * 1.1);
@@ -239,14 +266,13 @@ export const splatVert = /* glsl */`
     a *= isMicro * 1.0 + isMedium * 0.85 + isLarge * 0.55;
 
     /* ── 디버그 뷰 ── */
-    float vVel   = step(4.5, uView) * step(uView, 5.5);
-    float vMask  = step(5.5, uView) * step(uView, 6.5);
-    float vDepth = step(6.5, uView);
+    /* VIEW_INDEX와 반드시 같이 움직여야 한다: masks = 8, velocity = 9 */
+    float vMask = step(7.5, uView) * step(uView, 8.5);
+    float vVel  = step(8.5, uView);
     color = mix(color, vec3(clamp(exposure * 3.0, 0.0, 1.0), 0.12, 0.55), vVel);
     /* 마스크 뷰: Core = 적색, Soft = 청색, 둘 다 = 자홍, 자유 = 어두움 */
     color = mix(color, vec3(core, 0.10, soft * 0.95), vMask);
-    color = mix(color, vec3(depth, 0.25, 1.0 - depth), vDepth);
-    a     = mix(a, max(a, 0.35), max(vVel, vDepth));
+    a     = mix(a, max(a, 0.35), vVel);
     /* 마스크 뷰에서는 차폐로 사라지면 코어를 볼 수 없으므로 알파를 고정한다 */
     a     = mix(a, 0.5, vMask);
 
@@ -260,11 +286,17 @@ export const splatVert = /* glsl */`
 export const splatFrag = /* glsl */`
   uniform float uSoftness;
   varying vec3  vColor;
-  varying float vAlpha, vSoft;
+  varying float vAlpha, vSoft, vAngle, vAniso;
   void main(){
-    vec2  uv = gl_PointCoord - 0.5;
-    float g  = exp(-dot(uv, uv) * 4.0 * vSoft * uSoftness);
-    float a  = g * vAlpha;
+    vec2 uv = gl_PointCoord - 0.5;
+    /* 흐름 방향으로 회전한 뒤 그 축으로 늘인다. 스프라이트는 정사각형이므로
+       늘인 축을 나누고 반대 축을 곱해 넓이를 보존한다. */
+    float c = cos(vAngle), s = sin(vAngle);
+    vec2  r = vec2(c * uv.x + s * uv.y, -s * uv.x + c * uv.y);
+    r.x /= vAniso;
+    r.y *= vAniso;
+    float g = exp(-dot(r, r) * 4.0 * vSoft * uSoftness);
+    float a = g * vAlpha;
     if (a < 0.002) discard;
     gl_FragColor = vec4(vColor, a);
   }

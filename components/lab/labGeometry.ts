@@ -84,37 +84,62 @@ function brightness(r: number): number {
 export function buildSplatField(
   count: number,
   span: Span,
-  opts: { threshold: number; contrast: number; micro: number; medium: number; additiveRatio: number },
+  opts: { threshold: number; contrast: number; micro: number; medium: number;
+          additiveRatio: number; nearRatio: number },
 ): SplatBuffers {
-  const { threshold, contrast, micro, medium, additiveRatio } = opts
+  const { threshold, contrast, micro, medium, additiveRatio, nearRatio } = opts
 
   const oX: number[] = [], oY: number[] = [], oZ: number[] = []
-  const bright: number[] = [], dens: number[] = [], cls: number[] = [], seed: number[] = []
+  const bright: number[] = [], dens: number[] = [], cls: number[] = []
+  const seed: number[] = [], band: number[] = []
   const optical: number[] = []
 
+  /* 깊이 밴드 (지시서 §4). 전경은 소수만, 그것도 화면 가장자리에만 둔다. */
+  const BANDS = [
+    { id: 0, z0: -3.00, z1: -1.90, share: 0.45 },  // far
+    { id: 1, z0: -1.90, z1: -0.70, share: 0.50 },  // mid
+    { id: 2, z0: -0.70, z1:  0.35, share: nearRatio }, // near
+  ]
+  const total = BANDS.reduce((a, b) => a + b.share, 0)
+
   let tried = 0
-  const maxTries = count * 24
+  const maxTries = count * 30
   while (oX.length < count && tried < maxTries) {
     tried++
+    // 밴드를 share 비율대로 뽑는다
+    let r = Math.random() * total, bi = 0
+    for (const b of BANDS) { if (r < b.share) { bi = b.id; break } r -= b.share }
+    const B = BANDS[bi]
+
     const x = (Math.random() - 0.5) * 2 * span.x
     const y = (Math.random() - 0.5) * 2 * span.y
-    const z = -3.0 + Math.random() * 3.6
+    const z = B.z0 + Math.random() * (B.z1 - B.z0)
+
+    /* near는 화면 가장자리에만. 전 화면에 뿌리는 장식용 오버레이가 되면 안 된다. */
+    if (bi === 2) {
+      const edge = Math.abs(x) > span.x * 0.55 || Math.abs(y) > span.y * 0.62
+      if (!edge) continue
+    }
+
     let d = density(x, y, z, span)
     d = Math.pow(Math.max(0, d), contrast)
     if (d < threshold) continue
 
-    // 전경일수록 큰 splat, 후경일수록 미세 입자로 기운다.
-    const depth = (z + 3.0) / 3.6           // 0 후경 → 1 전경
-    const r = Math.random() - (depth - 0.5) * 0.22
-    const c = r < micro ? 0 : r < micro + medium ? 1 : 2
+    /* 크기군은 밴드에 따라 기운다: far는 미세, mid는 중형, near는 대형 */
+    let c: number
+    const q = Math.random()
+    if (bi === 0)      c = q < 0.80 ? 0 : q < 0.97 ? 1 : 2
+    else if (bi === 1) c = q < micro * 0.55 ? 0 : q < micro * 0.55 + medium + 0.20 ? 1 : 2
+    else               c = q < 0.10 ? 1 : 2
 
     oX.push(x); oY.push(y); oZ.push(z)
     dens.push(Math.min(1, d))
     bright.push(brightness(Math.random()))
     cls.push(c)
+    band.push(bi)
     seed.push(Math.random())
-    // 광학 입자: 밝은 미세 입자 중 일부만 Additive로 뽑는다.
-    optical.push(c === 0 && Math.random() < additiveRatio / Math.max(micro, 0.01) ? 1 : 0)
+    // 광학 입자: mid의 밝은 미세 입자 중 일부만 Additive
+    optical.push(bi === 1 && c === 0 && Math.random() < additiveRatio * 2.2 ? 1 : 0)
   }
 
   const n = oX.length
@@ -125,12 +150,13 @@ export function buildSplatField(
     const m = idx.length
     const pos = new Float32Array(m * 3), org = new Float32Array(m * 3)
     const br = new Float32Array(m), de = new Float32Array(m)
-    const cl = new Float32Array(m), sd = new Float32Array(m)
+    const cl = new Float32Array(m), sd = new Float32Array(m), bd = new Float32Array(m)
     idx.forEach((src, i) => {
       pos[i*3] = org[i*3] = oX[src]
       pos[i*3+1] = org[i*3+1] = oY[src]
       pos[i*3+2] = org[i*3+2] = oZ[src]
-      br[i] = bright[src]; de[i] = dens[src]; cl[i] = cls[src]; sd[i] = seed[src]
+      br[i] = bright[src]; de[i] = dens[src]; cl[i] = cls[src]
+      sd[i] = seed[src]; bd[i] = band[src]
     })
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
@@ -139,6 +165,7 @@ export function buildSplatField(
     g.setAttribute('aDensity', new THREE.BufferAttribute(de, 1))
     g.setAttribute('aClass',   new THREE.BufferAttribute(cl, 1))
     g.setAttribute('aSeed',    new THREE.BufferAttribute(sd, 1))
+    g.setAttribute('aBand',    new THREE.BufferAttribute(bd, 1))
     return g
   }
 

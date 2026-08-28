@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ChromaticBackdrop from '../../components/lab/ChromaticBackdrop'
-import SpatialImageField from '../../components/lab/SpatialImageField'
 import VolumetricLight from '../../components/lab/VolumetricLight'
 import LabCanvas from '../../components/lab/LabCanvas'
 import DebugPanel from '../../components/lab/DebugPanel'
@@ -21,7 +20,6 @@ import { labParams } from '../../components/lab/labParams'
  *   z 30  Debug panel
  */
 
-const IMAGE_FIELD = '/works/immersive-01.png'
 const CHARACTER   = '/mascot/robot.png'
 
 export default function VisualLab() {
@@ -66,24 +64,29 @@ export default function VisualLab() {
 
   // 디버그 뷰에 따라 DOM 레이어 표시를 바꾼다
   const [view, setView] = useState(labParams.view)
+  const [panel, setPanel] = useState(true)
   useEffect(() => {
-    const id = setInterval(() => setView(labParams.view), 200)
+    const id = setInterval(() => {
+      setView(labParams.view)
+      setPanel(document.getElementById('lab-debug')?.dataset.panel !== 'off')
+    }, 200)
     return () => clearInterval(id)
   }, [])
 
-  const showBackdrop = view === 'composite' || view === 'background' || view === 'light' || view === 'noparticle'
-  const showImage    = view === 'composite' || view === 'background' || view === 'noparticle'
-  // 'fog' 는 검증 캡처 03 "light and fog only" 용으로 광원도 함께 켠다
-  const showLight    = view === 'composite' || view === 'light' || view === 'fog' || view === 'noparticle'
-  const showContent  = view === 'composite' || view === 'masks' || view === 'noparticle'
+  /* L0는 L1/L2 캡처에서도 바탕으로 필요하다. 순수 L0만 볼 때는 'l0'. */
+  const showBackdrop = view !== 'far' && view !== 'mid' && view !== 'near' && view !== 'velocity'
+  const showContent  = view === 'composite' || view === 'masks'
+  const showHaze     = view === 'composite'
 
   return (
     <main className="lab-root">
       <style>{LAB_CSS}</style>
 
       {showBackdrop && <ChromaticBackdrop />}
-      {showImage && <SpatialImageField src={IMAGE_FIELD} />}
-      {showLight && <VolumetricLight pointer={pointer} />}
+      {/* L1 공간면과 L2 광원은 캔버스 안의 전체화면 패스로 옮겼다.
+          "광원이 공간면에 닿은 부분만 밝아짐"을 만들려면 L2가 L1의 필드를
+          알아야 하고, DOM gradient 두 장으로는 표면 반사를 만들 수 없다. */}
+      {view === 'composite' && <VolumetricLight pointer={pointer} />}
 
       <LabCanvas
         pointer={pointer}
@@ -91,14 +94,19 @@ export default function VisualLab() {
       />
 
       {/* ── z 4 — 전경 대기 haze. 저밀도만, 콘텐츠를 덮지 않는다 ── */}
-      {showContent && <div className="fg-haze" aria-hidden="true" />}
+      {showHaze && <div className="fg-haze" aria-hidden="true" />}
 
       {/* ── z 10 — 인물. 파티클은 이 위로 지나가지 않는다 ── */}
-      <div className="visual-character" style={{ opacity: showContent ? 1 : 0 }}>
-        {/* 발밑 접지 음영 */}
+      <div className="visual-character" style={{ opacity: showContent ? 1 : 0,
+        ["--char" as string]: `url(${CHARACTER})` }}>
+        {/* 인물 광학 합성 (지시서 §6).
+            파티클을 인물 위로 올리는 방식이 아니라, 실루엣 마스크로 만든
+            별도 light overlay를 이미지 **아래**에 깔아 외곽에서만 보이게 한다.
+            캐릭터 자체 색은 바꾸지 않는다. */}
         <div className="char-ground" aria-hidden="true" />
-        {/* 측면광과 일치하는 림 라이트 */}
-        <div className="char-rim" aria-hidden="true" />
+        <div className="char-sep"  aria-hidden="true" />
+        <div className="char-edge" aria-hidden="true" />
+        <div className="char-warm" aria-hidden="true" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img data-occlude src={CHARACTER} alt="테스트용 캐릭터" draggable={false} />
       </div>
@@ -134,8 +142,8 @@ export default function VisualLab() {
         <span>tier {stats.tier}</span>
       </div>
 
-      <div id="lab-debug" data-view="composite" hidden />
-      <DebugPanel />
+      <div id="lab-debug" data-view="composite" data-panel="on" hidden />
+      {panel && <DebugPanel />}
     </main>
   )
 }
@@ -234,20 +242,48 @@ const LAB_CSS = `
   filter: drop-shadow(-14px -6px 26px rgba(142, 122, 168, .22))
           drop-shadow(18px 10px 30px rgba(182, 129, 90, .12));
 }
+/* 발밑 diffuse contact shadow */
 .char-ground {
   position: absolute;
-  left: 50%; bottom: -2%;
-  width: 128%; height: 12%;
+  left: 50%; bottom: -1%;
+  width: 116%; height: 15%;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse at 50% 50%, rgba(8, 7, 12, .76) 0%, transparent 70%);
-  filter: blur(10px);
+  background: radial-gradient(ellipse at 50% 60%, rgba(8, 7, 12, .88) 0%, rgba(8,7,12,.40) 46%, transparent 72%);
+  filter: blur(12px);
 }
-.char-rim {
+.char-sep, .char-edge, .char-warm {
   position: absolute;
-  inset: -12% -18%;
-  background: radial-gradient(ellipse at 76% 62%, rgba(182, 129, 90, .14) 0%, transparent 62%);
+  inset: 0;
+  -webkit-mask-image: var(--char);
+  mask-image: var(--char);
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  pointer-events: none;
+}
+/* 인물 뒤쪽의 얇은 대기 분리 — 배경에서 떼어낸다 */
+.char-sep {
+  background: #7895A6;
+  opacity: .17;
+  transform: scale(1.035);
+  filter: blur(17px);
   mix-blend-mode: screen;
-  filter: blur(24px);
+}
+/* 주광원(좌상) 방향의 약한 edge light */
+.char-edge {
+  background: #8E7AA8;
+  opacity: .50;
+  transform: translate(-5px, -6px);
+  filter: blur(3px);
+  mix-blend-mode: screen;
+}
+/* 반대쪽의 매우 약한 warm 반사광 */
+.char-warm {
+  background: #B6815A;
+  opacity: .22;
+  transform: translate(6px, 5px);
+  filter: blur(5px);
+  mix-blend-mode: screen;
 }
 
 /* ── z 4 전경 대기 haze ──────────────────────────────────
