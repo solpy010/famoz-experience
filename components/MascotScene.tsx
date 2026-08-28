@@ -124,7 +124,7 @@ export default function MascotScene() {
           transform: 'translateX(-50%)',
           opacity: isIntro ? Math.min(1, stageSub * 3) : 0,
           transition: `opacity 0.6s ${EASE}`,
-          textAlign: 'center', zIndex: 5, whiteSpace: 'nowrap',
+          textAlign: 'center', zIndex: 'var(--z-media)', whiteSpace: 'nowrap',
         }}>
           <p className="t-label" style={{ color: 'var(--ac-magenta)', marginBottom: '0.5rem' }}>
             OUR CHARACTER
@@ -249,7 +249,7 @@ export default function MascotScene() {
             left: 'var(--gutter)',
             top: '50%',
             transform: 'translateY(-50%)',
-            zIndex: 10,
+            zIndex: 'var(--z-content)',
             maxWidth: 'clamp(260px, 36vw, 480px)',
             opacity: textVisible ? 1 : 0,
             transition: `opacity 0.6s ${EASE}`,
@@ -306,7 +306,7 @@ export default function MascotScene() {
           bottom: 'clamp(1.5rem, 4vh, 3rem)',
           left: '50%',
           transform: 'translateX(-50%)',
-          display: 'flex', gap: '10px', zIndex: 5,
+          display: 'flex', gap: '10px', zIndex: 'var(--z-media)',
         }}>
           {/* Intro dot */}
           <div style={{

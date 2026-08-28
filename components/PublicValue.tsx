@@ -33,7 +33,7 @@ export default function PublicValue() {
       />
 
       {/* Canvas distortion — cyan/gold network feel */}
-      <DistortionCanvas color1="#52BFFF" color2="#C8A040" mouseForce={2.5} opacity={0.4} />
+      <DistortionCanvas color1="#52BFFF" color2="#C8A040" mouseForce={2.5} opacity={0.30} />
 
       {/* Mid layer: network light nodes expanding */}
       <div
@@ -77,13 +77,13 @@ export default function PublicValue() {
           position: 'absolute',
           fontSize: 'clamp(14rem, 30vw, 28rem)', fontWeight: 900,
           color: 'rgba(255,255,255,0.012)', letterSpacing: '-0.05em', lineHeight: 1,
-          right: '-2%', bottom: '-5%', pointerEvents: 'none', userSelect: 'none', zIndex: 1,
+          right: '-2%', bottom: '-5%', pointerEvents: 'none', userSelect: 'none', zIndex: 'var(--z-haze)',
         }}
       >
         ∞
       </div>
 
-      <div className="shell" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+      <div className="shell" data-guard style={{ position: 'relative', zIndex: 'var(--z-content)', width: '100%' }}>
         <div style={{ maxWidth: 'var(--copy-max)' }}>
           <p data-reveal className="t-label" style={{ color: 'var(--ac-cyan)', marginBottom: 'clamp(1.25rem, 2.5vh, 2rem)' }}>
             PUBLIC VALUE

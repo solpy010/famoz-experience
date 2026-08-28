@@ -467,7 +467,7 @@ export default function VisualSystemCanvas({
       ref={canvasRef}
       aria-hidden="true"
       className="visual-canvas"
-      style={{ position: 'fixed', inset: 0, zIndex: 3, pointerEvents: 'none' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 'var(--z-field, 1)', pointerEvents: 'none' }}
     />
   )
 }

@@ -67,7 +67,7 @@ export default function EndingScene() {
         }}
       />
 
-      <div className="shell" style={{ position: 'relative', zIndex: 2 }}>
+      <div className="shell" style={{ position: 'relative', zIndex: 'var(--z-content)' }}>
 
         {/* Trust statement + year */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'clamp(2rem, 4vw, 3.5rem)', alignItems: 'end', marginBottom: 'clamp(2rem, 4vw, 3.5rem)' }}>

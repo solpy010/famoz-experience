@@ -225,12 +225,12 @@ export default function WorksFilm() {
         <div style={{
           position: 'absolute', left: 0, right: 0, bottom: 0, height: isMobile ? '38%' : '28%',
           background: '#080808',
-          zIndex: 1,
+          zIndex: 'var(--z-haze)',
         }} />
 
         {/* ── Section header (visible only in header zone) ── */}
         <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: '28%', zIndex: 3,
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: '28%', zIndex: 'var(--z-media)',
           display: 'flex', alignItems: 'flex-end',
           padding: 'var(--section-gap) var(--gutter) clamp(2rem,4vh,3rem)',
           opacity: inHeader ? 1 : 0,
@@ -255,7 +255,7 @@ export default function WorksFilm() {
         {/* ── Project info overlay ── */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: isMobile ? '38%' : '28%', zIndex: 4,
+          height: isMobile ? '38%' : '28%', zIndex: 'var(--z-media)',
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
           padding: '0 var(--gutter)',
           opacity: inHeader ? 0 : 1,
@@ -355,7 +355,7 @@ export default function WorksFilm() {
         {inHeader && (
           <div style={{
             position: 'absolute', bottom: 'clamp(1.5rem, 4vh, 3rem)', right: 'var(--gutter)',
-            zIndex: 5, display: 'flex', alignItems: 'center', gap: '0.5rem',
+            zIndex: 'var(--z-content)', display: 'flex', alignItems: 'center', gap: '0.5rem',
             color: 'rgba(237,232,224,0.3)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase',
           }}>
             <span>Scroll</span>

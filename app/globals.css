@@ -79,6 +79,17 @@
 
   --ac-magenta: #C07AB5;
 
+  /* ── 전역 레이어 계약 ──────────────────────────────────────
+     배경 렌더 레이어는 전부 10 미만, 콘텐츠는 전부 10 이상.
+     장면마다 z-index를 1~5로 임의로 정하면 고정 캔버스와 충돌한다.
+     새 레이어를 만들 때는 반드시 이 토큰을 쓸 것. */
+  --z-backdrop: 0;   /* SectionBackdrop (CSS 유색 암부) */
+  --z-field:    1;   /* WebGL 공간면·파티클 캔버스 */
+  --z-haze:     2;   /* 전경 대기 haze */
+  --z-media:   10;   /* 이미지·캐릭터 */
+  --z-content: 20;   /* 타이포·카피·CTA */
+  --z-debug:   30;   /* 디버그 UI */
+
   /* Hero 타이포 (지시서 §7). 주광원이 헤드라인 뒤에 있으므로 Ivory 고정.
      라벤더 강조는 배경 주광원과 같은 색이라 글자가 묻힌다. */
   --ivory: #EEE8DF;
@@ -408,3 +419,36 @@ body.intro-active [data-reveal].is-visible {
 #hero .t-hero { color: var(--ivory); text-shadow: 0 2px 30px rgba(13, 11, 20, .72); }
 #hero .hl-champagne { color: var(--champagne); }
 #hero .t-body { color: #C3BCB4; text-shadow: 0 1px 16px rgba(13, 11, 20, .55); }
+
+/* ── 콘텐츠 최전면 보장 ───────────────────────────────────────
+   .shell은 모든 장면의 카피 컨테이너다. 배경 레이어(≤2)보다 항상 앞에 온다. */
+.shell {
+  position: relative;
+  z-index: var(--z-content);
+}
+
+/* 카피 뒤 국소 암부.
+   검은 박스가 아니라 L0 톤과 이어지는 유색 암부로 대비를 확보한다.
+   밝은 스모그·파티클 위에서도 글자가 읽히게 하는 최소 장치. */
+[data-guard] { position: relative; }
+[data-guard]::before {
+  content: "";
+  position: absolute;
+  inset: -20% -18% -14% -22%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 78% 92% at 30% 48%,
+    rgba(13, 11, 20, .88) 0%,
+    rgba(24, 20, 34, .64) 42%,
+    rgba(24, 20, 34, .22) 66%,
+    transparent 84%
+  );
+  filter: blur(30px);
+}
+
+/* 글자 자체의 대비. 스크림만으로 부족한 밝은 스모그 구간을 보완한다. */
+[data-guard] .t-scene,
+[data-guard] .t-hero { text-shadow: 0 2px 30px rgba(13, 11, 20, .78); }
+[data-guard] .t-body { text-shadow: 0 1px 18px rgba(13, 11, 20, .70); }
+[data-guard] .t-label { text-shadow: 0 1px 14px rgba(13, 11, 20, .85); }

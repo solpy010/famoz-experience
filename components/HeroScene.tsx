@@ -67,7 +67,7 @@ export default function HeroScene({ introComplete }: Props) {
       </a>
 
       {/* Copy */}
-      <div className="shell" style={{ position: 'relative', zIndex: 3 }}>
+      <div className="shell" data-guard>
         <div style={{ maxWidth: 'min(100%, 900px)' }}>
           <p
             data-reveal

@@ -46,9 +46,9 @@ export default function ValueScene() {
         }} />
 
         {/* Canvas distortion — warm orange/magenta */}
-        <DistortionCanvas color1="#E8955A" color2="#C07AB5" mouseForce={1.8} opacity={0.45} />
+        <DistortionCanvas color1="#E8955A" color2="#C07AB5" mouseForce={1.8} opacity={0.34} />
 
-        <div className="shell" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+        <div className="shell" data-guard style={{ position: 'relative', zIndex: 'var(--z-content)', width: '100%' }}>
           <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 'clamp(2.5rem, 5vh, 4rem)' }}>
 
             {/* ── Headline ── */}

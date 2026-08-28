@@ -145,7 +145,7 @@ export default function WhatWeCreate() {
           color1={s.canvas1}
           color2={s.canvas2}
           mouseForce={s.canvasForce}
-          opacity={0.55}
+          opacity={0.40}
         />
 
         {/* Near layer — decorative keyword + parallax */}
@@ -166,7 +166,7 @@ export default function WhatWeCreate() {
         </div>
 
         {/* Content — sequential reveal */}
-        <div className="shell" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+        <div className="shell" data-guard style={{ width: '100%' }}>
 
           {/* Label */}
           <p
