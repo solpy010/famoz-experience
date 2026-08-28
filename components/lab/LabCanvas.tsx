@@ -4,7 +4,8 @@ import * as THREE from 'three'
 import { detectTier } from '../sceneStore'
 import { labParams, labEvents, LAYER_RESPONSE, VIEW_INDEX } from './labParams'
 import { buildSplatField, type Span, type SplatBuffers } from './labGeometry'
-import { splatVert, splatFrag, fogVert, fogFrag, MAX_STROKE, MAX_RECTS } from './labShaders'
+import { splatVert, splatFrag, fogVert, fogFrag } from './labShaders'
+import { MaskField } from './maskField'
 import type { PointerField } from './pointerField'
 
 /**
@@ -67,9 +68,8 @@ export default function LabCanvas({
 
     /* ── 공유 uniform ─────────────────────────────────── */
     const strokes = pointer.strokes
-    const contentRects = Array.from({ length: MAX_RECTS }, () => new THREE.Vector4(0, 0, 0, 0))
-    const charRect = new THREE.Vector4(0, 0, 0, 0)
-    const charTex = new THREE.Texture()
+    const mask = new MaskField()
+    const maskTexel = new THREE.Vector2(1 / 720, 1 / 450)
     const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight)
 
     const shared = () => ({
@@ -83,19 +83,18 @@ export default function LabCanvas({
       uMaxDisp:         { value: labParams.maxDisplacement },
       uSwirl:           { value: labParams.swirl },
       uMaxPointerSpeed: { value: labParams.maxPointerSpeed },
-      uContentRects:    { value: contentRects },
-      uContentCount:    { value: 0 },
-      uContentFeather:  { value: labParams.contentFeather },
-      uCharTex:         { value: charTex },
-      uCharRect:        { value: charRect },
-      uCharTexSize:     { value: new THREE.Vector2(512, 512) },
-      uCharEnabled:     { value: 0 },
-      uCharFeather:     { value: 0.05 },
+      uCoreTex:         { value: mask.coreTex },
+      uSoftTex:         { value: mask.softTex },
+      uMaskTexel:       { value: maskTexel },
       uMainLight:       { value: new THREE.Vector3(...labParams.mainLight) },
       uMainColor:       { value: new THREE.Vector3(...labParams.mainLightColor) },
       uSideLight:       { value: new THREE.Vector3(...labParams.sideLight) },
       uSideColor:       { value: new THREE.Vector3(...labParams.sideLightColor) },
+      uSideLevel:       { value: labParams.sideLevel },
       uAmbient:         { value: new THREE.Vector3(...labParams.ambient) },
+      uAlbedoNear:      { value: new THREE.Vector3(...labParams.albedoNear) },
+      uAlbedoFar:       { value: new THREE.Vector3(...labParams.albedoFar) },
+      uFogAbsorb:       { value: labParams.fogAbsorb },
       uAnisotropy:      { value: labParams.scatterAnisotropy },
       uReflectance:     { value: labParams.reflectance },
       uExposure:        { value: labParams.exposureResponse },
@@ -112,6 +111,8 @@ export default function LabCanvas({
       uBaseCurlStrength:{ value: labParams.baseCurlStrength },
       uBrightSuppress:  { value: labParams.brightnessSuppression },
       uPointerSuppress: { value: labParams.pointerSuppression },
+      uCoreOcclusion:   { value: labParams.coreOcclusion },
+      uDeflect:         { value: labParams.deflect },
       uRevealCap:       { value: 0.25 },
       uLagMicro:   { value: LAYER_RESPONSE.micro.lag },
       uLagMedium:  { value: LAYER_RESPONSE.medium.lag },
@@ -207,44 +208,14 @@ export default function LabCanvas({
     }
     sizeFog()
 
-    /* ── 인물 alpha mask 텍스처 ───────────────────────── */
-    const charEl = document.querySelector<HTMLImageElement>('[data-char]')
-    if (charEl) {
-      const load = () => {
-        const t = new THREE.TextureLoader().load(charEl.currentSrc || charEl.src, (tex) => {
-          charTex.image = tex.image
-          charTex.needsUpdate = true
-          const u = new THREE.Vector2(tex.image.width, tex.image.height)
-          splatUnis.uCharTexSize.value.copy(u)
-          opticalUnis.uCharTexSize.value.copy(u)
-          splatUnis.uCharEnabled.value = 1
-          opticalUnis.uCharEnabled.value = 1
-        })
-        t.colorSpace = THREE.SRGBColorSpace
-      }
-      if (charEl.complete) load(); else charEl.addEventListener('load', load, { once: true })
+    /* ── 3단계 마스크 갱신 ─────────────────────────────
+       DOM 레이아웃을 읽어 core/soft 텍스처를 다시 굽는다. 매 프레임 할 필요는
+       없고 리사이즈·스크롤·주기적 확인으로 충분하다. */
+    const syncMask = () => {
+      mask.update(window.innerWidth, window.innerHeight)
+      maskTexel.set(2 / window.innerWidth, 2 / window.innerHeight)
     }
-
-    /* ── 콘텐츠 안전영역 수집 ─────────────────────────── */
-    const syncRects = () => {
-      const els = Array.from(document.querySelectorAll<HTMLElement>('[data-safe]')).slice(0, MAX_RECTS)
-      const W = window.innerWidth, H = window.innerHeight
-      els.forEach((el, i) => {
-        const r = el.getBoundingClientRect()
-        // 화면 UV. y는 위아래를 뒤집는다 (WebGL 원점이 좌하단)
-        contentRects[i].set(r.left / W, 1 - (r.bottom / H), r.width / W, r.height / H)
-      })
-      for (let i = els.length; i < MAX_RECTS; i++) contentRects[i].set(0, 0, 0, 0)
-      splatUnis.uContentCount.value = els.length
-      opticalUnis.uContentCount.value = els.length
-      for (const m of fogMats) m.uniforms.uContentCount.value = els.length
-
-      if (charEl) {
-        const r = charEl.getBoundingClientRect()
-        charRect.set(r.left / W, 1 - (r.bottom / H), r.width / W, r.height / H)
-      }
-    }
-    syncRects()
+    syncMask()
 
     const onResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight)
@@ -255,10 +226,10 @@ export default function LabCanvas({
       spanVec.set(span.x, span.y)
       pointer.setView(Math.tan((FOV * Math.PI / 180) * 0.5) * (CAM_Z - Z_MID), camera.aspect)
       sizeFog()
-      syncRects()
+      syncMask()
     }
     window.addEventListener('resize', onResize)
-    window.addEventListener('scroll', syncRects, { passive: true })
+    window.addEventListener('scroll', syncMask, { passive: true })
 
     /* ── RAF ──────────────────────────────────────────── */
     let raf = 0, time = 0, last = performance.now(), frames = 0, fpsT = 0, fps = 0, tick = 0
@@ -272,7 +243,7 @@ export default function LabCanvas({
       if (fpsT >= 0.5) { fps = frames / fpsT; frames = 0; fpsT = 0 }
 
       if (labEvents.rebuild !== lastRebuild) { lastRebuild = labEvents.rebuild; rebuild() }
-      if (++tick % 12 === 0) syncRects()
+      if (++tick % 30 === 0) syncMask()
 
       pointer.update(dt)
       const p = labParams
@@ -289,8 +260,9 @@ export default function LabCanvas({
         u.uMaxDisp.value = p.maxDisplacement
         u.uSwirl.value = p.swirl
         u.uMaxPointerSpeed.value = p.maxPointerSpeed
-        u.uContentFeather.value = p.contentFeather
         u.uContentSuppress.value = p.contentSuppression
+        u.uSideLevel.value = p.sideLevel
+        u.uFogAbsorb.value = p.fogAbsorb
         u.uAnisotropy.value = p.scatterAnisotropy
         u.uReflectance.value = p.reflectance
         u.uExposure.value = p.exposureResponse
@@ -300,6 +272,8 @@ export default function LabCanvas({
         v3(u.uSideLight.value as THREE.Vector3, p.sideLight)
         v3(u.uSideColor.value as THREE.Vector3, p.sideLightColor)
         v3(u.uAmbient.value as THREE.Vector3, p.ambient)
+        v3(u.uAlbedoNear.value as THREE.Vector3, p.albedoNear)
+        v3(u.uAlbedoFar.value as THREE.Vector3, p.albedoFar)
       }
 
       applyShared(splatUnis as unknown as Record<string, { value: unknown }>)
@@ -311,6 +285,8 @@ export default function LabCanvas({
       splatUnis.uBaseCurlStrength.value = p.baseCurlStrength
       splatUnis.uBrightSuppress.value = p.brightnessSuppression
       splatUnis.uPointerSuppress.value = p.pointerSuppression
+      splatUnis.uCoreOcclusion.value = p.coreOcclusion
+      splatUnis.uDeflect.value = p.deflect
       opticalUnis.uSizeScale.value = p.sizeScale
       opticalUnis.uOpacity.value = p.opacity * 0.55
       opticalUnis.uSoftness.value = p.gaussianSoftness
@@ -318,6 +294,9 @@ export default function LabCanvas({
       opticalUnis.uBaseCurlStrength.value = p.baseCurlStrength
       opticalUnis.uBrightSuppress.value = p.brightnessSuppression
       opticalUnis.uPointerSuppress.value = p.pointerSuppression
+      /* 광학(additive) 입자는 실루엣 내부에서 100% 제거한다 (지시서 §1-A) */
+      opticalUnis.uCoreOcclusion.value = 1.0
+      opticalUnis.uDeflect.value = p.deflect
 
       for (const m of fogMats) {
         applyShared(m.uniforms as unknown as Record<string, { value: unknown }>)
@@ -326,8 +305,8 @@ export default function LabCanvas({
       }
 
       // 디버그 뷰별 레이어 표시
-      const showFog   = viewIdx === 0 || viewIdx === 3 || viewIdx === 5
-      const showSplat = viewIdx === 0 || viewIdx === 4 || viewIdx >= 5
+      const showFog   = viewIdx === 0 || viewIdx === 3 || viewIdx === 5 || viewIdx === 8
+      const showSplat = viewIdx === 0 || viewIdx === 4 || (viewIdx >= 5 && viewIdx <= 7)
       for (const m of fogMeshes) m.visible = showFog
       mainPoints.visible = showSplat
       optPoints.visible = showSplat && viewIdx === 0
@@ -340,10 +319,10 @@ export default function LabCanvas({
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', onResize)
-      window.removeEventListener('scroll', syncRects)
+      window.removeEventListener('scroll', syncMask)
       buffers?.main.dispose(); buffers?.optical.dispose()
-      fogGeo.dispose(); fogMats.forEach(m => m.dispose())
-      splatMat.dispose(); opticalMat.dispose(); charTex.dispose()
+      fogGeo.dispose(); fogMats.forEach(m => m.dispose()); mask.dispose()
+      splatMat.dispose(); opticalMat.dispose()
       renderer.dispose()
     }
   }, [pointer])

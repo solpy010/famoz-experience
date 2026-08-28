@@ -9,6 +9,7 @@
 export type DebugView =
   | 'composite' | 'background' | 'light' | 'fog'
   | 'splat' | 'velocity' | 'masks' | 'depth'
+  | 'noparticle'
 
 export type LabParams = {
   /* ── Composition ─────────────────────────────── */
@@ -20,6 +21,8 @@ export type LabParams = {
   contentSuppression: number      // 파티클 opacity 억제 0~1
   brightnessSuppression: number
   pointerSuppression: number
+  coreOcclusion: number           // A. 실루엣 내부 차폐율
+  deflect: number                 // 흐름을 콘텐츠 밖으로 가르는 세기
 
   /* ── Splat ───────────────────────────────────── */
   count: number
@@ -50,7 +53,11 @@ export type LabParams = {
   mainLightColor: [number, number, number]
   sideLight: [number, number, number]
   sideLightColor: [number, number, number]
+  sideLevel: number               // 측면광 세기. 1이면 주광원과 동등하게 경쟁한다
   ambient: [number, number, number]
+  albedoNear: [number, number, number]
+  albedoFar: [number, number, number]
+  fogAbsorb: number               // 후경 채도·대비 감쇠
   fogScattering: number
   fogDensity: number
   exposureResponse: number
@@ -71,18 +78,20 @@ export const DEFAULT_PARAMS: LabParams = {
   densityContrast: 1.35,
   foregroundDensity: 0.55,
   contentFeather: 0.055,
-  contentSuppression: 0.68,
-  brightnessSuppression: 0.74,
-  pointerSuppression: 0.85,
+  contentSuppression: 0.82,
+  brightnessSuppression: 0.86,
+  pointerSuppression: 0.90,
+  coreOcclusion: 1.0,
+  deflect: 0.28,
 
   count: 60_000,
-  microRatio: 0.18,
-  mediumRatio: 0.60,
-  largeRatio: 0.22,
+  microRatio: 0.50,
+  mediumRatio: 0.35,
+  largeRatio: 0.15,
   sizeScale: 1.0,
   gaussianSoftness: 1.0,
-  opacity: 0.42,
-  reflectance: 0.52,
+  opacity: 0.92,
+  reflectance: 1.05,
   additiveRatio: 0.12,
 
   baseCurlScale: 0.26,
@@ -97,12 +106,19 @@ export const DEFAULT_PARAMS: LabParams = {
   swirl: 0.38,
   maxPointerSpeed: 0.045,
 
-  mainLight:       [-1.9,  1.15, -2.6],
-  mainLightColor:  [0.62, 0.50, 0.78],   // Smoky Lavender
-  sideLight:       [ 2.2, -0.55, -0.9],
-  sideLightColor:  [0.86, 0.68, 0.42],   // Champagne Amber
-  ambient:         [0.055, 0.042, 0.078],
-  fogScattering: 0.48,
+  /* 팔레트는 지시서 §3 Hero 기본값에서만 고른다.
+     순수 red/green/magenta/cyan 금지, 두 고채도 색의 동일 면적 경쟁 금지. */
+  mainLight:       [-1.75,  1.05, -2.5],
+  mainLightColor:  [0.557, 0.478, 0.659],  // smoky lavender  #8E7AA8
+  sideLight:       [ 2.05, -0.50, -1.0],
+  sideLightColor:  [0.714, 0.506, 0.353],  // dusty amber     #B6815A
+  sideLevel: 0.42,                          // 주광원 대비 낮춰 강조 10% 이하로
+  ambient:         [0.105, 0.098, 0.125],
+  /* 입자의 기본색은 저채도. 빛에 닿을 때만 lavender/amber가 반사색으로 뜬다. */
+  albedoNear:      [0.63, 0.605, 0.585],   // warm gray
+  albedoFar:       [0.485, 0.520, 0.575],  // muted blue-gray
+  fogAbsorb: 0.55,
+  fogScattering: 0.62,
   fogDensity: 0.62,
   exposureResponse: 0.55,
   scatterAnisotropy: 0.58,
@@ -126,6 +142,7 @@ export function requestRebuild() { labEvents.rebuild++ }
 export const VIEW_INDEX: Record<DebugView, number> = {
   composite: 0, background: 1, light: 2, fog: 3,
   splat: 4, velocity: 5, masks: 6, depth: 7,
+  noparticle: 8,
 }
 
 /** 레이어별 반응 지연·힘·복귀 (문서 §10) */

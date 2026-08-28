@@ -44,12 +44,21 @@ function fbm(x: number, y: number, z: number): number {
  * 밀집 덩어리 — x/y/spread는 span에 대해 정규화(-1..1), z는 절대 깊이.
  * 후경에서 전경으로 이어지는 S-커브를 만들어 공간의 앞뒤를 만든다.
  */
+/**
+ * 지시서 §4 구성:
+ *   넓고 흐릿한 중간 밀도 공간면 2~3개 + 국소 고밀도 cluster 1~2개.
+ * 파티클이 화면의 주인공이 되면 안 되므로, 면적은 넓은 공간면이 갖고
+ * 시선을 잡는 밀도 피크는 좁은 cluster 두 개만 갖는다.
+ */
 const CLUMPS: [number, number, number, number, number][] = [
   // x, y, z, spread, weight
-  [-0.72,  0.46, -2.5, 0.52, 1.00],  // 후경 좌상 — 주광원 쪽
-  [-0.14, -0.26, -1.7, 0.44, 0.92],  // 중경 중앙
-  [ 0.48,  0.24, -1.0, 0.40, 0.85],  // 중경 우측
-  [ 0.86, -0.44, -0.4, 0.34, 0.70],  // 전경 우하 — 측면광 쪽
+  // 넓고 흐릿한 공간면
+  [-0.55,  0.30, -2.6, 1.05, 0.62],  // 후경 좌상 — 주광원이 통과하는 면
+  [ 0.35, -0.15, -1.6, 0.95, 0.55],  // 중경 전체를 낮게 채우는 면
+  [ 0.10,  0.55, -0.9, 0.80, 0.44],  // 상단 전경 면
+  // 국소 고밀도 cluster
+  [-0.30, -0.05, -2.0, 0.32, 1.00],  // 주광원 근처 밀도 피크
+  [ 0.72, -0.40, -0.7, 0.26, 0.88],  // 전경 우하 피크
 ]
 
 function density(x: number, y: number, z: number, span: Span): number {
@@ -67,9 +76,9 @@ function density(x: number, y: number, z: number, span: Span): number {
 
 function brightness(r: number): number {
   // 대부분 어둡다. 외부 광원에 닿았을 때만 드러나야 하므로 상위 대역이 얇다.
-  return r < 0.68 ? 0.16 + Math.random() * 0.24
-       : r < 0.92 ? 0.44 + Math.random() * 0.26
-       :            0.74 + Math.random() * 0.26
+  return r < 0.74 ? 0.14 + Math.random() * 0.22
+       : r < 0.94 ? 0.40 + Math.random() * 0.24
+       :            0.70 + Math.random() * 0.28
 }
 
 export function buildSplatField(

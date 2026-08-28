@@ -67,21 +67,21 @@ export default function VolumetricLight({ pointer }: { pointer: PointerField }) 
       <div ref={mainRef} style={{
         ...layer,
         background:
-          'radial-gradient(ellipse 58% 62% at 24% 22%, rgba(158,132,198,0.34) 0%, rgba(120,98,164,0.16) 34%, transparent 72%)',
+          'radial-gradient(ellipse 64% 68% at 24% 22%, rgba(142,122,168,0.30) 0%, rgba(110,95,134,0.14) 38%, transparent 76%)',
         filter: 'blur(28px)',
       }}/>
       {/* 측면광 — Champagne Amber, 우하에서 실루엣을 만든다 */}
       <div ref={sideRef} style={{
         ...layer,
         background:
-          'radial-gradient(ellipse 44% 52% at 82% 72%, rgba(214,170,106,0.26) 0%, rgba(160,120,72,0.10) 40%, transparent 74%)',
+          'radial-gradient(ellipse 40% 46% at 82% 74%, rgba(182,129,90,0.15) 0%, rgba(140,100,70,0.06) 42%, transparent 74%)',
         filter: 'blur(34px)',
       }}/>
       {/* 보조 산란광 — 중경 전체를 낮게 채워 깊이를 만든다 */}
       <div ref={fillRef} style={{
         ...layer,
         background:
-          'radial-gradient(ellipse 96% 44% at 54% 56%, rgba(92,110,140,0.18) 0%, transparent 66%)',
+          'radial-gradient(ellipse 104% 48% at 54% 56%, rgba(120,149,166,0.13) 0%, transparent 70%)',
         filter: 'blur(48px)',
       }}/>
     </div>

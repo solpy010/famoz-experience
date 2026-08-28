@@ -69,57 +69,34 @@ const STROKE_GLSL = /* glsl */`
   }
 `
 
-/* ── 콘텐츠 안전영역 (문서 §3) ──────────────────────────────── */
+/* ── 3단계 콘텐츠 마스크 (지시서 §1) ───────────────────────────
+   A Core Occlusion / B Soft Safety Field / C Ambient Field.
+   rect 루프 대신 화면 정렬 마스크 텍스처 2장을 읽는다. 페더가 blur로 구워져
+   있으므로 경계가 사각형으로 보이지 않고, soft의 기울기를 그대로 흐름 편향에
+   쓸 수 있다. maskField.ts 참조. */
 const MASK_GLSL = /* glsl */`
-  uniform vec4      uContentRects[${MAX_RECTS}];  /* x, y, w, h — 화면 UV */
-  uniform float     uContentCount, uContentFeather;
-  uniform sampler2D uCharTex;
-  uniform vec4      uCharRect;
-  uniform vec2      uCharTexSize;
-  uniform float     uCharEnabled, uCharFeather;
+  uniform sampler2D uCoreTex;   /* a: 1 = 실루엣 내부 (완전 차폐) */
+  uniform sampler2D uSoftTex;   /* a: 1 = 완전 억제 → 페더 밖 0 */
+  uniform vec2      uMaskTexel;
 
-  /* 1.0 = 자유,  0.0 = 완전 억제 */
-  float contentMask(vec2 suv){
-    float m = 1.0;
-    for (int i = 0; i < ${MAX_RECTS}; i++){
-      vec4 r = uContentRects[i];
-      float valid = step(float(i + 1), uContentCount + 0.5);
-      vec2 c = r.xy + r.zw * 0.5;
-      vec2 h = r.zw * 0.5;
-      vec2 d = abs(suv - c) - h;
-      float outside = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
-      float s = smoothstep(0.0, uContentFeather, outside);
-      m = min(m, mix(1.0, s, valid));
-    }
-    return m;
-  }
+  float coreMask(vec2 suv){ return texture2D(uCoreTex, vec2(suv.x, 1.0 - suv.y)).a; }
+  float softMask(vec2 suv){ return texture2D(uSoftTex, vec2(suv.x, 1.0 - suv.y)).a; }
 
-  /* 인물 alpha mask — 불투명 픽셀 위로는 입자가 지나가지 않는다 */
-  float charMask(vec2 suv){
-    if (uCharEnabled < 0.5) return 1.0;
-    vec2 half_ = uCharRect.zw * 0.5;
-    vec2 ctr   = uCharRect.xy + half_;
-    vec2 d     = abs(suv - ctr) - half_;
-    float outside = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
-    if (outside > 0.0) return smoothstep(0.0, uCharFeather, outside);
-
-    vec2 uv = (suv - uCharRect.xy) / uCharRect.zw;
-    uv.y = 1.0 - uv.y;
-    vec2 o = 1.6 / max(uCharTexSize, vec2(1.0));
-    float a = texture2D(uCharTex, uv).a * 0.44
-            + texture2D(uCharTex, uv + vec2( o.x, 0.0)).a * 0.14
-            + texture2D(uCharTex, uv + vec2(-o.x, 0.0)).a * 0.14
-            + texture2D(uCharTex, uv + vec2(0.0,  o.y)).a * 0.14
-            + texture2D(uCharTex, uv + vec2(0.0, -o.y)).a * 0.14;
-    return 1.0 - smoothstep(0.10, 0.62, a);
+  /* soft 필드의 기울기. 흐름을 콘텐츠 바깥으로 갈라 흐르게 하는 데 쓴다. */
+  vec2 softGradient(vec2 suv){
+    vec2 e = uMaskTexel * 2.0;
+    float l = softMask(suv - vec2(e.x, 0.0)), r = softMask(suv + vec2(e.x, 0.0));
+    float d = softMask(suv - vec2(0.0, e.y)), u = softMask(suv + vec2(0.0, e.y));
+    return vec2(r - l, u - d);
   }
 `
 
 /* ── 외부 광원 산란 (famoz-art-direction L2 / 문서 §9) ──────── */
 const LIGHT_GLSL = /* glsl */`
   uniform vec3  uMainLight, uMainColor, uSideLight, uSideColor, uAmbient;
+  uniform vec3  uAlbedoNear, uAlbedoFar;
   uniform vec3  uCamPos;
-  uniform float uAnisotropy, uReflectance;
+  uniform float uAnisotropy, uReflectance, uSideLevel, uFogAbsorb;
 
   float henyeyGreenstein(float cosT, float g){
     float gg = g * g;
@@ -134,16 +111,28 @@ const LIGHT_GLSL = /* glsl */`
 
     /* 감쇠는 볼륨 전체(반경 ~4)에 걸쳐 방향성이 남을 만큼 완만해야 한다.
        계수가 크면 광원 바로 옆만 밝고 나머지는 전부 검게 죽는다. */
-    /* 감쇠가 너무 완만하면 두 광원이 어디서나 같이 닿아 색이 회색으로 섞인다.
-       주광원 영역(라벤더)과 측면광 영역(앰버)이 공간적으로 갈라질 만큼은 세운다. */
-    float attM = 1.0 / (1.0 + dot(dM, dM) * 0.155);
-    float attS = 1.0 / (1.0 + dot(dS, dS) * 0.235);
+    /* 감쇠를 완만하게 둬 광원이 넓은 저주파 gradient field로 섞이게 한다.
+       세우면 색 덩어리가 띠로 갈라진다 (지시서 §3). 대신 측면광의 세기를
+       주광원보다 낮춰(uSideLevel) 두 고채도 색이 동일 면적·동일 밝기로
+       경쟁하지 않게 한다. */
+    float attM = 1.0 / (1.0 + dot(dM, dM) * 0.062);
+    float attS = 1.0 / (1.0 + dot(dS, dS) * 0.098);
 
-    float sM = attM * henyeyGreenstein(dot(normalize(dM), V), uAnisotropy) * 3.4;
-    float sS = attS * henyeyGreenstein(dot(normalize(dS), V), uAnisotropy * 0.8) * 2.6;
+    float sM = attM * henyeyGreenstein(dot(normalize(dM), V), uAnisotropy) * 3.1;
+    float sS = attS * henyeyGreenstein(dot(normalize(dS), V), uAnisotropy * 0.7) * 3.1 * uSideLevel;
 
     lit = sM + sS;
     return (uMainColor * sM + uSideColor * sS) * uReflectance;
+  }
+
+  /* 입자는 고유색을 갖지 않는다. 저채도 albedo가 빛에 노출된 만큼만 색을 띤다.
+     후경일수록 fog absorption으로 채도와 대비가 낮아진다. */
+  vec3 shadeParticle(vec3 pos, float depth, float bright, out float lit){
+    vec3 albedo = mix(uAlbedoFar, uAlbedoNear, depth);
+    vec3 scat   = externalLight(pos, lit);
+    vec3 col    = albedo * (uAmbient + scat * bright);
+    float luma  = dot(col, vec3(0.299, 0.587, 0.114));
+    return mix(col, vec3(luma), (1.0 - depth) * uFogAbsorb);
   }
 `
 
@@ -154,6 +143,7 @@ export const splatVert = /* glsl */`
   uniform float uTime, uDPR, uSizeScale, uOpacity;
   uniform float uBaseCurlScale, uBaseCurlStrength;
   uniform float uContentSuppress, uBrightSuppress, uPointerSuppress;
+  uniform float uCoreOcclusion, uDeflect;
   uniform float uExposure, uRevealCap;
   uniform float uLagMicro, uLagMedium, uLagLarge;
   uniform float uForceMicro, uForceMedium, uForceLarge;
@@ -189,52 +179,76 @@ export const splatVert = /* glsl */`
                   * uBaseCurlStrength;
     vec3 pos = origin + baseFlow * (0.4 + depth * 0.8);
 
-    /* 변위 전 화면좌표로 포인터 힘 억제량을 먼저 구한다 */
+    /* 변위 전 화면좌표에서 마스크를 먼저 읽는다 */
     vec4 clip0 = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
     vec2 suv0  = clip0.xy / max(abs(clip0.w), 1e-4) * 0.5 + 0.5;
-    float gate = mix(1.0 - uPointerSuppress, 1.0, contentMask(suv0));
+    float soft0 = softMask(suv0);
+
+    /* C. Ambient Field — 완충 밖에서만 정상적인 포인터 상호작용 */
+    float gate = 1.0 - uPointerSuppress * soft0;
 
     float exposure;
     pos.xy += strokeForce(pos.xy, lag, fsc * gate, tau, exposure);
 
+    /* 흐름이 콘텐츠를 관통하지 않고 주변으로 갈라져 흐르게 한다.
+       soft 필드의 기울기 반대 방향으로 밀어낸다. */
+    vec2 g = softGradient(suv0);
+    float gl = length(g);
+    pos.xy -= (g / max(gl, 1e-4)) * min(gl * 6.0, 1.0) * soft0 * uDeflect;
+
     vec4 mv   = modelViewMatrix * vec4(pos, 1.0);
     vec4 clip = projectionMatrix * mv;
     vec2 suv  = clip.xy / max(abs(clip.w), 1e-4) * 0.5 + 0.5;
-    float cm  = min(contentMask(suv), charMask(suv));
+
+    float core = coreMask(suv);   /* A */
+    float soft = softMask(suv);   /* B */
 
     /* ── 조명 ── */
-    float lit;
-    vec3  recv    = externalLight(pos, lit);
-    vec3  ambient = uAmbient * (0.5 + depth * 0.5);
     /* 흐름이 갈라진 만큼 후경광이 드러난다. 상한을 둬 동시에 번쩍이지 않게. */
-    float reveal  = 1.0 + clamp(exposure * uExposure, 0.0, uRevealCap);
-    vec3  color   = ambient + recv * aBright * reveal;
+    float reveal = 1.0 + clamp(exposure * uExposure, 0.0, uRevealCap);
+    float lit;
+    vec3  color  = shadeParticle(pos, depth, aBright * reveal, lit);
 
-    /* 밝은 입자만 억제한다. 어두운 입자는 남겨 검은 구멍을 막는다 (§3). */
-    float brightW = smoothstep(0.28, 0.88, aBright);
-    color *= mix(1.0 - uBrightSuppress * brightW, 1.0, cm);
+    /* B. Soft Safety Field — 밝은 입자일수록 강하게 감쇠한다.
+       어두운 입자는 남겨 검은 구멍이 생기지 않게 한다. */
+    float brightW = smoothstep(0.22, 0.85, aBright);
+    color *= 1.0 - uBrightSuppress * brightW * soft;
 
-    float a = uOpacity * (0.25 + aBright * 0.75) * (0.45 + aDensity * 0.55) * (0.50 + depth * 0.50);
-    a *= mix(1.0 - uContentSuppress * brightW, 1.0, cm);
+    /* 밀도를 제곱으로 실어 고밀도 cluster만 드러나게 한다. 선형이면 성긴
+       영역까지 같이 올라와 화면 전체가 균일한 점묘가 된다. */
+    float a = uOpacity * (0.25 + aBright * 0.75)
+            * (0.28 + aDensity * aDensity * 0.95) * (0.50 + depth * 0.50);
+    a *= 1.0 - uContentSuppress * brightW * soft;
+
+    /* A. Core Occlusion — 실루엣 내부는 입자가 보이지 않는다 */
+    a *= 1.0 - uCoreOcclusion * smoothstep(0.10, 0.55, core);
 
     /* ── 크기 ── */
-    float baseSize = isMicro * 1.7 + isMedium * 5.0 + isLarge * 14.0;
+    float baseSize = isMicro * 1.7 + isMedium * 6.0 + isLarge * 30.0;
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
              * (0.45 + depth * 0.75) * (0.72 + lit * 1.1);
-    float lo = isMicro * 0.6 + isMedium * 2.4 + isLarge * 7.0;
-    float hi = isMicro * 3.0 + isMedium * 12.0 + isLarge * 42.0;
+    float lo = isMicro * 0.6 + isMedium * 3.0 + isLarge * 16.0;
+    float hi = isMicro * 3.0 + isMedium * 14.0 + isLarge * 64.0;
 
-    /* 클래스마다 다른 Gaussian softness — 전경일수록 부드럽다 */
-    vSoft = isMicro * 4.2 + isMedium * 2.4 + isLarge * 1.15;
+    /* large는 점이 아니라 흐릿한 공간면으로 읽혀야 한다 (지시서 §4).
+       흐림은 falloff를 눕혀서가 아니라 **크기**로 얻는다.
+       프래그먼트는 exp(-dot(uv,uv)*4*vSoft)이고 스프라이트 모서리의
+       dot(uv,uv)는 0.5이므로, vSoft가 2.0 아래로 내려가면 모서리 알파가
+       남아 입자가 정사각형으로 보인다. 하한 2.0을 지킬 것. */
+    vSoft = isMicro * 4.2 + isMedium * 2.4 + isLarge * 2.0;
+    a *= isMicro * 1.0 + isMedium * 0.85 + isLarge * 0.55;
 
     /* ── 디버그 뷰 ── */
     float vVel   = step(4.5, uView) * step(uView, 5.5);
     float vMask  = step(5.5, uView) * step(uView, 6.5);
     float vDepth = step(6.5, uView);
     color = mix(color, vec3(clamp(exposure * 3.0, 0.0, 1.0), 0.12, 0.55), vVel);
-    color = mix(color, vec3(1.0 - cm, cm * 0.55, 0.25), vMask);
+    /* 마스크 뷰: Core = 적색, Soft = 청색, 둘 다 = 자홍, 자유 = 어두움 */
+    color = mix(color, vec3(core, 0.10, soft * 0.95), vMask);
     color = mix(color, vec3(depth, 0.25, 1.0 - depth), vDepth);
-    a     = mix(a, max(a, 0.35), max(vVel, max(vMask, vDepth)));
+    a     = mix(a, max(a, 0.35), max(vVel, vDepth));
+    /* 마스크 뷰에서는 차폐로 사라지면 코어를 볼 수 없으므로 알파를 고정한다 */
+    a     = mix(a, 0.5, vMask);
 
     vColor = color;
     vAlpha = a;
@@ -308,14 +322,18 @@ export const fogFrag = /* glsl */`
 
     float lit;
     vec3 scat = externalLight(vWorld, lit) * uFogScattering;
-    vec3 col  = uAmbient * 0.6 + scat;
+    vec3 col  = mix(uAlbedoFar, uAlbedoNear, uLayer) * (uAmbient + scat);
 
     /* 흐름이 갈라진 곳에서 후경광이 더 드러난다 */
     col *= 1.0 + clamp(exposure * uExposure * 0.6, 0.0, 0.30);
 
     vec2 suv = gl_FragCoord.xy / max(uResolution, vec2(1.0));
-    float cm = contentMask(suv);
-    float a  = d * uOpacity * mix(1.0 - uContentSuppress * 0.45, 1.0, cm);
+    float core = coreMask(suv);
+    float soft = softMask(suv);
+    /* 스모그는 저밀도라 콘텐츠를 가리지 않지만, 실루엣 내부에서는 완전히 뺀다 */
+    float a  = d * uOpacity
+             * (1.0 - uContentSuppress * 0.40 * soft)
+             * (1.0 - smoothstep(0.10, 0.55, core));
 
     float vVel = step(4.5, uView) * step(uView, 5.5);
     col = mix(col, vec3(clamp(exposure * 3.0, 0.0, 1.0), 0.05, 0.35), vVel);

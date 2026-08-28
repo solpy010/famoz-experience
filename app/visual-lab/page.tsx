@@ -71,10 +71,11 @@ export default function VisualLab() {
     return () => clearInterval(id)
   }, [])
 
-  const showBackdrop = view === 'composite' || view === 'background' || view === 'light'
-  const showImage    = view === 'composite' || view === 'background'
-  const showLight    = view === 'composite' || view === 'light'
-  const showContent  = view === 'composite' || view === 'masks'
+  const showBackdrop = view === 'composite' || view === 'background' || view === 'light' || view === 'noparticle'
+  const showImage    = view === 'composite' || view === 'background' || view === 'noparticle'
+  // 'fog' 는 검증 캡처 03 "light and fog only" 용으로 광원도 함께 켠다
+  const showLight    = view === 'composite' || view === 'light' || view === 'fog' || view === 'noparticle'
+  const showContent  = view === 'composite' || view === 'masks' || view === 'noparticle'
 
   return (
     <main className="lab-root">
@@ -89,6 +90,9 @@ export default function VisualLab() {
         onStats={(s) => { statRef.current = s }}
       />
 
+      {/* ── z 4 — 전경 대기 haze. 저밀도만, 콘텐츠를 덮지 않는다 ── */}
+      {showContent && <div className="fg-haze" aria-hidden="true" />}
+
       {/* ── z 10 — 인물. 파티클은 이 위로 지나가지 않는다 ── */}
       <div className="visual-character" style={{ opacity: showContent ? 1 : 0 }}>
         {/* 발밑 접지 음영 */}
@@ -96,30 +100,34 @@ export default function VisualLab() {
         {/* 측면광과 일치하는 림 라이트 */}
         <div className="char-rim" aria-hidden="true" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img data-char src={CHARACTER} alt="테스트용 캐릭터" draggable={false} />
+        <img data-occlude src={CHARACTER} alt="테스트용 캐릭터" draggable={false} />
       </div>
 
       {/* ── z 20 — DOM 타이포그래피 ── */}
       <div className="visual-content" style={{ opacity: showContent ? 1 : 0 }}>
-        <div className="visual-copy" data-safe>
-          <p className="eyebrow">공간 경험 디자인 스튜디오</p>
+        <div className="visual-copy">
+          <p className="eyebrow" data-safe="soft">공간 경험 디자인 스튜디오</p>
+          {/* 제목은 라인 단위 마스크. 블록 하나로 묶으면 큰 사각 암부가 생기고,
+              글자 사이에 밝은 입자가 끼는 것도 막지 못한다. */}
           <h1>
-            상상을<br />
-            <span className="hl">살아있는 공간 경험</span>으로<br />
-            디자인합니다.
+            <span className="line" data-safe="strong">상상을</span>
+            <span className="line" data-safe="strong">
+              <span className="hl">살아있는 공간 경험</span>으로
+            </span>
+            <span className="line" data-safe="strong">디자인합니다.</span>
           </h1>
           <p className="body">
-            콘텐츠·미디어·AI를 연결해<br />
-            사람에게 반응하고 이야기를 이어가는 공간을 만듭니다.
+            <span className="line" data-safe="soft">콘텐츠·미디어·AI를 연결해</span>
+            <span className="line" data-safe="soft">사람에게 반응하고 이야기를 이어가는 공간을 만듭니다.</span>
           </p>
         </div>
-        <a className="cta" href="#" data-safe onClick={(e) => e.preventDefault()}>
+        <a className="cta" href="#" data-safe="soft" onClick={(e) => e.preventDefault()}>
           대표 프로젝트 보기 <span aria-hidden="true">→</span>
         </a>
       </div>
 
       {/* ── 성능 정보 ── */}
-      <div className="lab-stats" data-safe>
+      <div className="lab-stats" data-safe="soft">
         <b>{stats.fps.toFixed(0)}</b> fps
         <span>{stats.points.toLocaleString()} pts</span>
         <span>coverage {(stats.coverage * 100).toFixed(0)}%</span>
@@ -139,9 +147,10 @@ const LAB_CSS = `
   overflow: hidden;
   /* 유색 암부 기저면 — 캔버스가 뜨기 전이나 tier 0에서도 검게 비지 않는다 */
   background:
-    radial-gradient(ellipse 78% 66% at 26% 24%, #241329 0%, transparent 64%),
-    radial-gradient(ellipse 62% 58% at 78% 74%, #211D1C 0%, transparent 60%),
-    radial-gradient(ellipse 128% 96% at 48% 46%, #191721 0%, #0A0E19 72%, #05070C 100%);
+    radial-gradient(ellipse 82% 70% at 28% 26%, #24172D 0%, transparent 66%),
+    radial-gradient(ellipse 58% 54% at 80% 76%, #1E1A18 0%, transparent 58%),
+    radial-gradient(ellipse 96% 50% at 56% 54%, #171C22 0%, transparent 62%),
+    radial-gradient(ellipse 130% 98% at 48% 46%, #13101A 0%, #0D0B12 74%, #08070C 100%);
 }
 
 /* ── z 20 콘텐츠 ─────────────────────────────────────── */
@@ -167,8 +176,8 @@ const LAB_CSS = `
   z-index: -1;
   background: radial-gradient(
     ellipse at 35% 50%,
-    rgba(10, 14, 25, .72) 0%,
-    rgba(22, 19, 34, .42) 48%,
+    rgba(13, 11, 20, .70) 0%,
+    rgba(36, 23, 45, .40) 48%,
     transparent 78%
   );
   filter: blur(22px);
@@ -176,32 +185,34 @@ const LAB_CSS = `
 .eyebrow {
   font-size: clamp(.66rem, .82vw, .78rem);
   letter-spacing: .22em;
-  color: #B9A8C8;
+  color: #9C8FAE;
   margin-bottom: 1.4rem;
 }
+.visual-content h1 .line,
+.visual-content .body .line { display: block; }
 .visual-content h1 {
   font-size: clamp(2.4rem, 5.6vw, 4.6rem);
   line-height: 1.16;
   letter-spacing: -.02em;
-  color: #EDE8E0;
-  text-shadow: 0 2px 26px rgba(8, 10, 20, .55);
+  color: #EEE8DF;
+  text-shadow: 0 2px 26px rgba(13, 11, 20, .58);
   word-break: keep-all;
 }
-.visual-content h1 .hl { color: #C6A9DC; }
+.visual-content h1 .hl { color: #B3A2C6; }
 .visual-content .body {
   margin-top: 1.6rem;
   font-size: clamp(.95rem, 1.1vw, 1.12rem);
   line-height: 1.85;
-  color: #A9A29E;
+  color: #9A948E;
   text-shadow: 0 1px 16px rgba(8, 10, 20, .5);
 }
 .cta {
   align-self: flex-start;
   font-size: .9rem;
-  color: #EDE8E0;
+  color: #EEE8DF;
   text-decoration: none;
   padding: .55rem .2rem;
-  border-bottom: 1px solid rgba(237, 232, 224, .38);
+  border-bottom: 1px solid rgba(238, 232, 223, .34);
   text-shadow: 0 1px 14px rgba(8, 10, 20, .6);
 }
 
@@ -220,23 +231,40 @@ const LAB_CSS = `
   width: auto;
   display: block;
   /* 배경 광원 색이 외곽에 약하게 반영 */
-  filter: drop-shadow(-14px -6px 26px rgba(150, 126, 190, .26))
-          drop-shadow(18px 10px 30px rgba(200, 158, 100, .16));
+  filter: drop-shadow(-14px -6px 26px rgba(142, 122, 168, .22))
+          drop-shadow(18px 10px 30px rgba(182, 129, 90, .12));
 }
 .char-ground {
   position: absolute;
   left: 50%; bottom: -2%;
   width: 128%; height: 12%;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse at 50% 50%, rgba(6, 8, 16, .72) 0%, transparent 70%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(8, 7, 12, .76) 0%, transparent 70%);
   filter: blur(10px);
 }
 .char-rim {
   position: absolute;
   inset: -12% -18%;
-  background: radial-gradient(ellipse at 76% 62%, rgba(214, 170, 106, .18) 0%, transparent 62%);
+  background: radial-gradient(ellipse at 76% 62%, rgba(182, 129, 90, .14) 0%, transparent 62%);
   mix-blend-mode: screen;
   filter: blur(24px);
+}
+
+/* ── z 4 전경 대기 haze ──────────────────────────────────
+   저밀도만 허용한다. 콘텐츠(z10/z20)보다 아래이므로 타이포와 인물을 덮지
+   않으며, 화면 가장자리에서만 존재감이 생기도록 마스크를 건다. */
+.fg-haze {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: .5;
+  background:
+    radial-gradient(ellipse 62% 46% at 12% 88%, rgba(142, 122, 168, .10) 0%, transparent 70%),
+    radial-gradient(ellipse 54% 40% at 92% 14%, rgba(120, 149, 166, .08) 0%, transparent 68%);
+  mask-image: radial-gradient(ellipse 72% 66% at 50% 50%, transparent 34%, #000 100%);
+  -webkit-mask-image: radial-gradient(ellipse 72% 66% at 50% 50%, transparent 34%, #000 100%);
+  filter: blur(26px);
 }
 
 /* ── 성능 정보 ───────────────────────────────────────── */
@@ -248,13 +276,13 @@ const LAB_CSS = `
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   letter-spacing: .04em;
-  color: #7E8797;
-  background: rgba(10, 14, 25, .5);
+  color: #7A8189;
+  background: rgba(13, 11, 20, .55);
   padding: 6px 12px;
   border-radius: 6px;
   backdrop-filter: blur(8px);
 }
-.lab-stats b { color: #C6A9DC; font-size: 13px; }
+.lab-stats b { color: #8E7AA8; font-size: 13px; }
 
 @media (max-width: 760px) {
   .visual-character { height: 46vh; right: -4%; opacity: .85; }
