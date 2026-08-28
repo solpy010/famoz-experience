@@ -1,84 +1,141 @@
 'use client'
+import { useEffect, useRef, useState } from 'react'
+import DistortionCanvas from './DistortionCanvas'
 
 const VALUE_ITEMS = [
-  { text: '이해하기 쉬워집니다', sub: '복잡한 정보가 감각으로 전달됩니다', accentColor: 'rgba(232,149,90,0.4)', highlight: true },
-  { text: '직접 참여하게 됩니다', sub: '관람에서 경험의 주체로 바뀝니다', accentColor: 'rgba(82,191,255,0.4)', highlight: false },
-  { text: '공간과 연결됩니다', sub: '장소가 관계로 기억됩니다', accentColor: 'rgba(61,201,146,0.4)', highlight: false },
-  { text: '오래 기억하게 됩니다', sub: '경험은 의미로 전환됩니다', accentColor: 'rgba(192,122,181,0.4)', highlight: true },
+  { text: '이해하기 쉬워집니다', sub: '복잡한 정보가 감각으로 전달됩니다', color: '#E8955A' },
+  { text: '직접 참여하게 됩니다', sub: '관람객의 행동이 경험의 주체가 됩니다', color: '#52BFFF' },
+  { text: '공간과 연결됩니다', sub: '장소가 관계로 기억됩니다', color: '#3DC992' },
+  { text: '오래 기억하게 됩니다', sub: '경험은 의미로 전환됩니다', color: '#C07AB5' },
 ]
 
+const THRESHOLDS = [0.18, 0.38, 0.58, 0.78]
+
 export default function ValueScene() {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    const onScroll = () => {
+      const el = wrapRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const total = el.offsetHeight - window.innerHeight
+      const scrolled = Math.max(0, -rect.top)
+      setProgress(Math.min(1, scrolled / total))
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const beamFill = Math.max(0, Math.min(1, (progress - 0.04) / 0.88))
+
   return (
-    <section
-      id="value"
-      style={{
-        position: 'relative', overflow: 'hidden',
-        background: 'var(--black)', paddingBlock: 'var(--section-gap)',
-        minHeight: '140svh', display: 'flex', alignItems: 'center',
-      }}
-    >
-      {/* Far layer */}
-      <div
-        aria-hidden="true"
-        className="px-far"
-        style={{
+    <div ref={wrapRef} id="value" style={{ position: 'relative', height: '500vh' }}>
+      <section style={{
+        position: 'sticky', top: 0,
+        height: '100svh', overflow: 'hidden',
+        background: 'var(--black)',
+        display: 'flex', alignItems: 'center',
+      }}>
+        {/* Ambient gradient */}
+        <div aria-hidden style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 70% 60% at 35% 55%, #140a20 0%, var(--black) 60%)',
-        }}
-      />
-      {/* Mid layer — action point lights */}
-      <div
-        aria-hidden="true"
-        className="px-mid"
-        style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 30% 30% at 15% 30%, rgba(232,149,90,0.07) 0%, transparent 70%), radial-gradient(ellipse 25% 25% at 80% 75%, rgba(192,122,181,0.07) 0%, transparent 70%)',
-          animation: 'warm-glow 6s ease-in-out infinite',
-        }}
-      />
+          background: 'radial-gradient(ellipse 60% 50% at 20% 40%, rgba(17,8,32,0.9) 0%, transparent 70%)',
+        }} />
 
-      <div className="shell" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'clamp(3rem, 6vw, 5rem)', alignItems: 'start' }}>
-          {/* Headline */}
-          <div style={{ maxWidth: '16ch' }} data-reveal>
-            <p className="t-label" style={{ color: 'var(--ac-orange)', marginBottom: 'clamp(1.25rem, 2.5vh, 2rem)' }}>
-              VALUE
-            </p>
-            <h2 className="t-scene">
-              공간은 사람을 움직이고
-              <br />
-              <span style={{ color: 'rgba(237,232,224,0.4)' }}>
-                참여는 기억으로
+        {/* Canvas distortion — warm orange/magenta */}
+        <DistortionCanvas color1="#E8955A" color2="#C07AB5" mouseForce={1.8} opacity={0.45} />
+
+        <div className="shell" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 'clamp(2.5rem, 5vh, 4rem)' }}>
+
+            {/* ── Headline ── */}
+            <div data-reveal>
+              <p className="t-label" style={{ color: 'var(--ac-orange)', marginBottom: '1.25rem' }}>VALUE</p>
+              <h2 className="t-scene" style={{ maxWidth: '24ch' }}>
+                공간은 사람을 움직이고
                 <br />
-                남습니다.
-              </span>
-            </h2>
-          </div>
+                <span style={{ color: 'rgba(237,232,224,0.32)' }}>참여는 기억으로 남습니다.</span>
+              </h2>
+            </div>
 
-          {/* Keywords — with staggered reveals and light-pass on highlights */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(2rem, 4vw, 3.5rem)' }}>
-            {VALUE_ITEMS.map((kw, i) => (
-              <div
-                key={i}
-                data-reveal
-                style={{
-                  borderLeft: `2px solid ${kw.accentColor}`,
-                  paddingLeft: '1.5rem',
-                  transitionDelay: `${i * 0.15}s`,
-                }}
-              >
-                <p
-                  className={`t-keyword${kw.highlight ? ' kw-light is-visible' : ''}`}
-                  style={{ color: kw.highlight ? undefined : 'var(--text)', marginBottom: '0.4rem' }}
-                >
-                  {kw.text}
-                </p>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{kw.sub}</p>
+            {/* ── Beam + Items ── */}
+            <div style={{ display: 'flex', gap: 'clamp(2rem, 4vw, 5rem)', alignItems: 'stretch' }}>
+
+              {/* Beam track */}
+              <div style={{ position: 'relative', width: '1px', flexShrink: 0, minHeight: '240px' }}>
+                {/* Track */}
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.05)' }} />
+                {/* Active beam */}
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0,
+                  height: `${beamFill * 100}%`,
+                  background: 'linear-gradient(to bottom, var(--ac-orange) 0%, var(--ac-cyan) 50%, var(--ac-magenta) 100%)',
+                  transition: 'height 0.25s cubic-bezier(0.4,0,0.2,1)',
+                }} />
+                {/* Beam glow tip */}
+                {beamFill > 0.02 && (
+                  <div style={{
+                    position: 'absolute',
+                    left: '-5px',
+                    top: `calc(${beamFill * 100}% - 5px)`,
+                    width: '11px', height: '11px',
+                    borderRadius: '50%',
+                    background: 'white',
+                    boxShadow: '0 0 16px 6px rgba(255,255,255,0.5)',
+                    transition: 'top 0.25s cubic-bezier(0.4,0,0.2,1)',
+                  }} />
+                )}
               </div>
-            ))}
+
+              {/* Items */}
+              <div style={{
+                flex: 1,
+                display: 'flex', flexDirection: 'column',
+                gap: 'clamp(1.25rem, 3vh, 2.5rem)',
+                justifyContent: 'space-between',
+              }}>
+                {VALUE_ITEMS.map((item, i) => {
+                  const active = progress >= THRESHOLDS[i]
+                  const subVisible = progress >= THRESHOLDS[i] + 0.07
+                  return (
+                    <div key={i} style={{
+                      opacity: active ? 1 : 0.1,
+                      transform: active ? 'translateX(0)' : 'translateX(-6px)',
+                      transition: 'opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1)',
+                    }}>
+                      <p style={{
+                        fontFamily: "'Paperlogy', 'Pretendard', sans-serif",
+                        fontSize: 'clamp(1rem, 2vw, 1.9rem)',
+                        fontWeight: 400,
+                        letterSpacing: '-0.01em',
+                        lineHeight: 1.2,
+                        color: active ? item.color : 'var(--text-muted)',
+                        transition: 'color 0.5s cubic-bezier(0.4,0,0.2,1)',
+                        marginBottom: '0.4rem',
+                      }}>
+                        {item.text}
+                      </p>
+                      <p style={{
+                        fontFamily: "'A2G', 'Pretendard', sans-serif",
+                        fontSize: 'clamp(0.75rem, 0.95vw, 0.95rem)',
+                        color: 'var(--text-sub)',
+                        opacity: subVisible ? 1 : 0,
+                        transform: subVisible ? 'translateY(0)' : 'translateY(5px)',
+                        transition: 'opacity 0.5s cubic-bezier(0.4,0,0.2,1) 0.1s, transform 0.5s cubic-bezier(0.4,0,0.2,1) 0.1s',
+                      }}>
+                        {item.sub}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   )
 }
