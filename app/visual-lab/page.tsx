@@ -120,7 +120,7 @@ export default function VisualLab() {
           <h1>
             <span className="line" data-safe="strong">상상을</span>
             <span className="line" data-safe="strong">
-              <span className="hl">살아있는 공간 경험</span>으로
+              살아있는 <span className="hl">공간 경험</span>으로
             </span>
             <span className="line" data-safe="strong">디자인합니다.</span>
           </h1>
@@ -193,7 +193,7 @@ const LAB_CSS = `
 .eyebrow {
   font-size: clamp(.66rem, .82vw, .78rem);
   letter-spacing: .22em;
-  color: #9C8FAE;
+  color: #B5C4CB;   /* Pale Mist */
   margin-bottom: 1.4rem;
 }
 .visual-content h1 .line,
@@ -202,16 +202,17 @@ const LAB_CSS = `
   font-size: clamp(2.4rem, 5.6vw, 4.6rem);
   line-height: 1.16;
   letter-spacing: -.02em;
-  color: #EEE8DF;
-  text-shadow: 0 2px 26px rgba(13, 11, 20, .58);
+  color: #EEE8DF;   /* Warm Ivory — 주광원이 글자 뒤에 있으므로 Ivory 고정 */
+  text-shadow: 0 2px 30px rgba(13, 11, 20, .72);
   word-break: keep-all;
 }
-.visual-content h1 .hl { color: #B3A2C6; }
+/* 강조는 한 단어에만. 라벤더는 배경 주광원과 같은 색이라 묻힌다. */
+.visual-content h1 .hl { color: #D8CDBD; }  /* Pale Champagne */
 .visual-content .body {
   margin-top: 1.6rem;
   font-size: clamp(.95rem, 1.1vw, 1.12rem);
   line-height: 1.85;
-  color: #9A948E;
+  color: #C3BCB4;
   text-shadow: 0 1px 16px rgba(8, 10, 20, .5);
 }
 .cta {
@@ -251,38 +252,45 @@ const LAB_CSS = `
   background: radial-gradient(ellipse at 50% 60%, rgba(8, 7, 12, .88) 0%, rgba(8,7,12,.40) 46%, transparent 72%);
   filter: blur(12px);
 }
+/* 실루엣 마스크에 방향 마스크를 교차시킨다. 외곽 전체에 같은 glow를 두르면
+   보라색 테두리가 되므로, 각 광원은 자기 방향의 외곽에만 나타난다. */
 .char-sep, .char-edge, .char-warm {
   position: absolute;
   inset: 0;
-  -webkit-mask-image: var(--char);
-  mask-image: var(--char);
-  -webkit-mask-size: contain; mask-size: contain;
-  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain, 100% 100%; mask-size: contain, 100% 100%;
+  -webkit-mask-repeat: no-repeat, no-repeat; mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-position: center, center; mask-position: center, center;
+  -webkit-mask-composite: source-in; mask-composite: intersect;
   pointer-events: none;
 }
-/* 인물 뒤쪽의 얇은 대기 분리 — 배경에서 떼어낸다 */
-.char-sep {
-  background: #7895A6;
-  opacity: .17;
-  transform: scale(1.035);
-  filter: blur(17px);
-  mix-blend-mode: screen;
-}
-/* 주광원(좌상) 방향의 약한 edge light */
+/* 주광원(좌상)을 향한 외곽에만 cool edge light */
 .char-edge {
   background: #8E7AA8;
-  opacity: .50;
+  -webkit-mask-image: var(--char), linear-gradient(145deg, #000 0%, rgba(0,0,0,.55) 32%, transparent 58%);
+  mask-image: var(--char), linear-gradient(145deg, #000 0%, rgba(0,0,0,.55) 32%, transparent 58%);
+  opacity: .62;
   transform: translate(-5px, -6px);
   filter: blur(3px);
   mix-blend-mode: screen;
 }
-/* 반대쪽의 매우 약한 warm 반사광 */
+/* 반대쪽 하단에만 약한 warm bounce. 광원을 등진 외곽은 어둡게 남는다. */
 .char-warm {
   background: #B6815A;
-  opacity: .22;
-  transform: translate(6px, 5px);
-  filter: blur(5px);
+  -webkit-mask-image: var(--char), linear-gradient(325deg, #000 0%, rgba(0,0,0,.45) 26%, transparent 52%);
+  mask-image: var(--char), linear-gradient(325deg, #000 0%, rgba(0,0,0,.45) 26%, transparent 52%);
+  opacity: .26;
+  transform: translate(6px, 6px);
+  filter: blur(6px);
+  mix-blend-mode: screen;
+}
+/* 대기 분리 — 균일한 outline이 아니라 배경이 밝은 상단부에만 */
+.char-sep {
+  background: #7895A6;
+  -webkit-mask-image: var(--char), linear-gradient(170deg, #000 0%, rgba(0,0,0,.4) 38%, transparent 66%);
+  mask-image: var(--char), linear-gradient(170deg, #000 0%, rgba(0,0,0,.4) 38%, transparent 66%);
+  opacity: .20;
+  transform: scale(1.03);
+  filter: blur(16px);
   mix-blend-mode: screen;
 }
 

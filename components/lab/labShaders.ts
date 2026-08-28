@@ -1,4 +1,5 @@
 import { NOISE_GLSL } from '../webgl/shaders'
+import { SHEETS_GLSL, CORRIDOR_GLSL } from './sheets'
 
 /**
  * /visual-lab GLSL.
@@ -151,15 +152,19 @@ export const splatVert = /* glsl */`
   uniform float uView;
 
   uniform float uLayerFilter;   /* -1 전부, 0 far, 1 mid, 2 near */
-  uniform float uSplatAniso;
+  uniform float uSplatAniso, uAspect, uSheetBind;
+  uniform vec2  uLightOrigin;
+  uniform float uLightZ;
 
   attribute vec3  aOrigin;
-  attribute float aBright, aDensity, aClass, aSeed, aBand;
+  attribute float aBright, aDensity, aClass, aSeed, aBand, aRole;
 
   varying vec3  vColor;
   varying float vAlpha, vSoft, vAngle, vAniso;
 
   ${NOISE_GLSL}
+  ${SHEETS_GLSL}
+  ${CORRIDOR_GLSL}
   ${STROKE_GLSL}
   ${MASK_GLSL}
   ${LIGHT_GLSL}
@@ -219,11 +224,33 @@ export const splatVert = /* glsl */`
     vec3  color  = shadeParticle(pos, depth, aBright * reveal, lit);
 
     /* far: 낮은 대비·낮은 채도 / mid: 가장 또렷 / near: 크고 흐림 */
-    float luma2 = dot(color, vec3(0.299, 0.587, 0.114));
-    color = mix(color, vec3(luma2), isFar * 0.45);
-    color *= isFar * 0.62 + isMid * 1.15 + isNear * 0.78;
+    float luma2 = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    color = mix(color, vec3(luma2), isFar * 0.55);
+    color *= isFar * 0.52 + isMid * 1.15 + isNear * 0.70;
     /* mid는 광원에 닿은 일부만 선명해진다 */
     color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
+
+    /* ── 시트 종속 가시성 (지시서 §4) ─────────────────────────
+       particleVisibility = sheetProximity * lightExposure
+                          * depthAttenuation * contentMask
+       시트와 광원에서 먼 입자는 거의 보이지 않는다. */
+    vec2 sp = vec2((suv.x - 0.5) * uAspect, suv.y - 0.5);
+    float prox = 0.0, tanAngle = 0.0;
+    for (int i = 0; i < SHEET_COUNT; i++){
+      SheetDef sh = getSheet(i);
+      float c = sheetCore(sh, sp);
+      if (c > prox) {
+        prox = c;
+        vec2 tg = sheetTangent(sh, sp.x);
+        tanAngle = atan(tg.y, tg.x);
+      }
+    }
+    float corrN = corridorField(sp);
+    /* 통로 입자는 시트가 없어도 흐름을 보여줘야 하므로 별도로 살린다 */
+    float bindField = max(prox, corrN * step(0.5, aRole) * step(aRole, 1.5) * 0.85);
+    float lightExposure = clamp(0.25 + lit * 1.9, 0.0, 1.4);
+    float depthAtten = 0.40 + depth * 0.60;
+    float visibility = mix(1.0, bindField * lightExposure * depthAtten, uSheetBind);
 
     /* B. Soft Safety Field — 밝은 입자일수록 강하게 감쇠한다.
        어두운 입자는 남겨 검은 구멍이 생기지 않게 한다. */
@@ -233,7 +260,10 @@ export const splatVert = /* glsl */`
     /* 밀도를 제곱으로 실어 고밀도 cluster만 드러나게 한다. 선형이면 성긴
        영역까지 같이 올라와 화면 전체가 균일한 점묘가 된다. */
     float a = uOpacity * (0.25 + aBright * 0.75)
-            * (0.28 + aDensity * aDensity * 0.95) * (0.50 + depth * 0.50);
+            * (0.28 + aDensity * aDensity * 0.95) * (0.50 + depth * 0.50)
+            * clamp(visibility, 0.0, 1.6)
+            /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
+            * (1.0 - isFar * 0.55);
     a *= 1.0 - uContentSuppress * brightW * soft;
 
     /* A. Core Occlusion — 실루엣 내부는 입자가 보이지 않는다 */
@@ -248,8 +278,11 @@ export const splatVert = /* glsl */`
     /* ── 형태 ──
        원형만 반복하지 않는다. mid의 절반은 흐름 방향으로 늘어난 타원형이라
        흐름 방향을 판독할 수 있다 (지시서 §5). */
-    vAngle = atan(baseFlow.y, baseFlow.x + 1e-5);
-    vAniso = 1.0 + uSplatAniso * isMid * step(aSeed, 0.5) * (0.5 + aDensity * 0.5);
+    /* 시트 위 입자는 면의 접선 방향으로, 나머지는 흐름 방향으로 정렬한다 */
+    float onSheet = smoothstep(0.25, 0.6, prox);
+    vAngle = mix(atan(baseFlow.y, baseFlow.x + 1e-5), tanAngle, onSheet);
+    vAniso = 1.0 + uSplatAniso * max(isMid, onSheet * 0.8) * step(aSeed, 0.62)
+                 * (0.5 + aDensity * 0.5);
 
     float baseSize = isMicro * 1.7 + isMedium * 6.0 + isLarge * 30.0;
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
@@ -266,9 +299,17 @@ export const splatVert = /* glsl */`
     a *= isMicro * 1.0 + isMedium * 0.85 + isLarge * 0.55;
 
     /* ── 디버그 뷰 ── */
-    /* VIEW_INDEX와 반드시 같이 움직여야 한다: masks = 8, velocity = 9 */
+    /* VIEW_INDEX와 반드시 같이 움직여야 한다: masks = 8, velocity = 9, dist = 10 */
     float vMask = step(7.5, uView) * step(uView, 8.5);
-    float vVel  = step(8.5, uView);
+    float vVel  = step(8.5, uView) * step(uView, 9.5);
+    float vDist = step(9.5, uView);
+    /* E: 역할별 색 — sheet 라벤더 / corridor 청록 / far 회청 / near 앰버 */
+    vec3 roleCol = step(aRole, 0.5) * vec3(0.68, 0.55, 0.86)
+                 + step(0.5, aRole) * step(aRole, 1.5) * vec3(0.30, 0.72, 0.70)
+                 + step(1.5, aRole) * step(aRole, 2.5) * vec3(0.36, 0.44, 0.56)
+                 + step(2.5, aRole) * vec3(0.88, 0.62, 0.34);
+    color = mix(color, roleCol, vDist);
+    a     = mix(a, max(a * 2.2, 0.28), vDist);
     color = mix(color, vec3(clamp(exposure * 3.0, 0.0, 1.0), 0.12, 0.55), vVel);
     /* 마스크 뷰: Core = 적색, Soft = 청색, 둘 다 = 자홍, 자유 = 어두움 */
     color = mix(color, vec3(core, 0.10, soft * 0.95), vMask);

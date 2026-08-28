@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { nearestSheet, corridorCPU, SHEETS } from './sheets'
 
 /**
  * L4 지오메트리 — density field 기반 분포 (famoz-art-direction)
@@ -81,65 +82,92 @@ function brightness(r: number): number {
        :            0.70 + Math.random() * 0.28
 }
 
+/**
+ * 입자를 L1 시트에 **종속**시켜 배치한다 (지시서 §4).
+ * 별가루처럼 화면 전체에 균등 확률로 뿌리지 않는다.
+ *
+ *   role 0 sheet-bound  65~75%   시트 주변
+ *   role 1 corridor     15~20%   통로 방향 흐름
+ *   role 2 far          나머지    저밀도 후경
+ *   role 3 near         ≤5%      전경 가장자리
+ */
+const ROLE_MIX = [0.72, 0.18, 0.05, 0.05]
+
+/** 월드 좌표 → 화면비 보정 화면 좌표. 셰이더의 p와 같은 공간. */
+function toScreen(x: number, y: number, z: number, cam: CamInfo) {
+  const k = 1 / (2 * cam.tanHalfFov * (cam.z - z))
+  return { sx: x * k, sy: y * k }
+}
+
+export type CamInfo = { z: number; tanHalfFov: number; aspect: number }
+
 export function buildSplatField(
   count: number,
   span: Span,
+  cam: CamInfo,
   opts: { threshold: number; contrast: number; micro: number; medium: number;
           additiveRatio: number; nearRatio: number },
 ): SplatBuffers {
-  const { threshold, contrast, micro, medium, additiveRatio, nearRatio } = opts
+  const { threshold, contrast, additiveRatio } = opts
 
   const oX: number[] = [], oY: number[] = [], oZ: number[] = []
   const bright: number[] = [], dens: number[] = [], cls: number[] = []
-  const seed: number[] = [], band: number[] = []
+  const seed: number[] = [], band: number[] = [], role: number[] = []
   const optical: number[] = []
 
-  /* 깊이 밴드 (지시서 §4). 전경은 소수만, 그것도 화면 가장자리에만 둔다. */
   const BANDS = [
-    { id: 0, z0: -3.00, z1: -1.90, share: 0.45 },  // far
-    { id: 1, z0: -1.90, z1: -0.70, share: 0.50 },  // mid
-    { id: 2, z0: -0.70, z1:  0.35, share: nearRatio }, // near
+    { z0: -3.00, z1: -1.90 },  // far
+    { z0: -1.90, z1: -0.70 },  // mid
+    { z0: -0.70, z1:  0.35 },  // near
   ]
-  const total = BANDS.reduce((a, b) => a + b.share, 0)
+  const roleTotal = ROLE_MIX.reduce((a, b) => a + b, 0)
 
   let tried = 0
-  const maxTries = count * 30
+  const maxTries = count * 60
   while (oX.length < count && tried < maxTries) {
     tried++
-    // 밴드를 share 비율대로 뽑는다
-    let r = Math.random() * total, bi = 0
-    for (const b of BANDS) { if (r < b.share) { bi = b.id; break } r -= b.share }
-    const B = BANDS[bi]
 
+    // 역할을 먼저 뽑고, 그 역할이 성립하는 자리만 채택한다
+    let r = Math.random() * roleTotal, rl = 0
+    for (let i = 0; i < ROLE_MIX.length; i++) { if (r < ROLE_MIX[i]) { rl = i; break } r -= ROLE_MIX[i] }
+
+    const bi = rl === 3 ? 2 : rl === 2 ? 0 : rl === 1 ? 1 : (Math.random() < 0.35 ? 0 : 1)
+    const B = BANDS[bi]
     const x = (Math.random() - 0.5) * 2 * span.x
     const y = (Math.random() - 0.5) * 2 * span.y
     const z = B.z0 + Math.random() * (B.z1 - B.z0)
 
-    /* near는 화면 가장자리에만. 전 화면에 뿌리는 장식용 오버레이가 되면 안 된다. */
-    if (bi === 2) {
-      const edge = Math.abs(x) > span.x * 0.55 || Math.abs(y) > span.y * 0.62
+    const { sx, sy } = toScreen(x, y, z, cam)
+    if (Math.abs(sx) > cam.aspect * 0.56 || Math.abs(sy) > 0.56) continue
+
+    const prox = nearestSheet(sx, sy).proximity
+    const corr = corridorCPU(sx, sy)
+
+    if (rl === 0 && prox < 0.30) continue                 // 시트에서 멀면 버린다
+    if (rl === 1 && (corr < 0.35 || prox > 0.45)) continue // 통로 안, 시트 밖
+    if (rl === 2 && prox > 0.22) continue                  // 후경 저밀도는 시트 밖만
+    if (rl === 3) {
+      const edge = Math.abs(sx) > cam.aspect * 0.34 || Math.abs(sy) > 0.34
       if (!edge) continue
     }
 
     let d = density(x, y, z, span)
     d = Math.pow(Math.max(0, d), contrast)
-    if (d < threshold) continue
+    // 시트 종속 입자는 밀도장 임계를 완화한다. 시트 근접도가 이미 구조를 준다.
+    if (d < threshold * (rl === 0 ? 0.55 : 1.0)) continue
 
-    /* 크기군은 밴드에 따라 기운다: far는 미세, mid는 중형, near는 대형 */
     let c: number
     const q = Math.random()
-    if (bi === 0)      c = q < 0.80 ? 0 : q < 0.97 ? 1 : 2
-    else if (bi === 1) c = q < micro * 0.55 ? 0 : q < micro * 0.55 + medium + 0.20 ? 1 : 2
+    if (bi === 0)      c = q < 0.86 ? 0 : q < 0.98 ? 1 : 2
+    else if (bi === 1) c = q < 0.30 ? 0 : q < 0.88 ? 1 : 2
     else               c = q < 0.10 ? 1 : 2
 
     oX.push(x); oY.push(y); oZ.push(z)
-    dens.push(Math.min(1, d))
+    dens.push(Math.min(1, Math.max(d, prox * 0.9)))
     bright.push(brightness(Math.random()))
-    cls.push(c)
-    band.push(bi)
+    cls.push(c); band.push(bi); role.push(rl)
     seed.push(Math.random())
-    // 광학 입자: mid의 밝은 미세 입자 중 일부만 Additive
-    optical.push(bi === 1 && c === 0 && Math.random() < additiveRatio * 2.2 ? 1 : 0)
+    optical.push(rl === 0 && c === 0 && Math.random() < additiveRatio * 1.6 ? 1 : 0)
   }
 
   const n = oX.length
@@ -150,13 +178,14 @@ export function buildSplatField(
     const m = idx.length
     const pos = new Float32Array(m * 3), org = new Float32Array(m * 3)
     const br = new Float32Array(m), de = new Float32Array(m)
-    const cl = new Float32Array(m), sd = new Float32Array(m), bd = new Float32Array(m)
+    const cl = new Float32Array(m), sd = new Float32Array(m)
+    const bd = new Float32Array(m), rl = new Float32Array(m)
     idx.forEach((src, i) => {
       pos[i*3] = org[i*3] = oX[src]
       pos[i*3+1] = org[i*3+1] = oY[src]
       pos[i*3+2] = org[i*3+2] = oZ[src]
       br[i] = bright[src]; de[i] = dens[src]; cl[i] = cls[src]
-      sd[i] = seed[src]; bd[i] = band[src]
+      sd[i] = seed[src]; bd[i] = band[src]; rl[i] = role[src]
     })
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
@@ -166,6 +195,7 @@ export function buildSplatField(
     g.setAttribute('aClass',   new THREE.BufferAttribute(cl, 1))
     g.setAttribute('aSeed',    new THREE.BufferAttribute(sd, 1))
     g.setAttribute('aBand',    new THREE.BufferAttribute(bd, 1))
+    g.setAttribute('aRole',    new THREE.BufferAttribute(rl, 1))
     return g
   }
 

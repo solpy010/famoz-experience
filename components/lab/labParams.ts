@@ -9,8 +9,9 @@
 export type DebugView =
   | 'composite'                       // 08 최종 합성
   | 'l0' | 'l1' | 'l2' | 'l1l2'       // 01~04 레이어 분리
-  | 'far' | 'mid' | 'near'            // 05~07 깊이별 splat
-  | 'masks' | 'velocity'              // 12 디버그
+  | 'far' | 'mid' | 'near'            // 깊이별 splat
+  | 'cone' | 'reflect'                // B, C — L2 광학 마스크 분리
+  | 'masks' | 'velocity' | 'dist'     // 디버그 (E = dist)
 
 export type LabParams = {
   /* ── Composition ─────────────────────────────── */
@@ -76,11 +77,14 @@ export type LabParams = {
   lightOrigin: [number, number]
   lightDir: [number, number]
   warmOrigin: [number, number]
+  lightZ: number
   coneWidth: number
   coneFalloff: number
   coneLevel: number
   scatterLevel: number
   reflectLevel: number
+  coolLevel: number
+  sheetBind: number               // 입자를 시트에 묶는 정도
   coolCol: [number, number, number]
 
   /* ── Splat 형태 ──────────────────────────────── */
@@ -108,7 +112,7 @@ export const DEFAULT_PARAMS: LabParams = {
   coreOcclusion: 1.0,
   deflect: 0.28,
 
-  count: 60_000,
+  count: 40_000,
   microRatio: 0.50,
   mediumRatio: 0.35,
   largeRatio: 0.15,
@@ -149,7 +153,7 @@ export const DEFAULT_PARAMS: LabParams = {
 
   /* L1 — 비정형 곡면·통로·음영면 */
   warp: 0.085,
-  fieldLevel: 1.15,
+  fieldLevel: 1.05,
   corridor: 0.80,
   shadow: 0.85,
   surfaceCol: [0.430, 0.352, 0.485],   // 들어올린 aubergine
@@ -159,11 +163,14 @@ export const DEFAULT_PARAMS: LabParams = {
   lightOrigin: [-1.15,  0.55],
   lightDir:    [ 1.00, -0.42],
   warmOrigin:  [ 0.52, -0.34],
-  coneWidth: 0.58,
-  coneFalloff: 0.52,
+  lightZ: 0.85,
+  coneWidth: 0.52,
+  coneFalloff: 0.44,
   coneLevel: 1.0,
-  scatterLevel: 0.88,
-  reflectLevel: 1.70,
+  scatterLevel: 0.55,
+  reflectLevel: 1.55,
+  coolLevel: 1.05,
+  sheetBind: 0.92,
   coolCol: [0.471, 0.584, 0.651],      // mist blue #7895A6
 
   splatAniso: 0.55,
@@ -187,7 +194,8 @@ export function requestRebuild() { labEvents.rebuild++ }
 /** 디버그 뷰 → 셰이더 uView 값 */
 export const VIEW_INDEX: Record<DebugView, number> = {
   composite: 0, l0: 1, l1: 2, l2: 3, l1l2: 4,
-  far: 5, mid: 6, near: 7, masks: 8, velocity: 9,
+  far: 5, mid: 6, near: 7, masks: 8, velocity: 9, dist: 10,
+  cone: 11, reflect: 12,
 }
 
 /** 깊이 레이어 필터. -1 = 전부 */

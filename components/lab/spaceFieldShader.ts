@@ -1,26 +1,28 @@
 import { NOISE_GLSL } from '../webgl/shaders'
+import { SHEETS_GLSL, CORRIDOR_GLSL } from './sheets'
 
 /**
  * L1 Spatial Field + L2 Volumetric Light — 전체화면 패스.
  *
- * 왜 한 셰이더인가:
- *   "광원이 공간면에 닿은 부분만 밝아짐"을 구현하려면 L2가 L1의 필드를 알아야
- *   한다. 두 레이어를 분리한 DOM gradient로는 표면 반사를 만들 수 없다.
- *   대신 uFieldMode로 각각을 따로 볼 수 있게 해 검수 캡처 02/03/04를 만든다.
+ * 핵심 규칙 (지시서 §1~§3):
+ *   - 공간면은 빛이 아니다. 기본 상태는 암부이고 source cone에 닿은 부분만 밝다.
+ *   - warp noise는 표면 **위치**를 변형하는 데만 쓴다. noise 값을 그대로 밝기로
+ *     쓰면 안개 리본이 된다.
+ *   - 면마다 법선이 다르고, 곡률 때문에 같은 면 안에서도 광원을 향한 쪽과
+ *     등진 쪽의 명도가 갈린다.
+ *   - 색온도는 넓은 색 덩어리가 아니라 **어느 면에 어떤 빛이 닿았는가**의 결과다.
+ *       라벤더  = source cone의 표면 반사   (주)
+ *       mist blue = 통로와 후경의 산란에만  (15~20%)
+ *       amber   = 전경 반사면에만          (5~10%)
  *
- * L1은 승인된 공간 이미지가 없으므로 지시서 §2-B 경로를 쓴다:
- *   저주파 SDF 성격의 비정형 곡면 3개 + 깊이별 opacity field +
- *   방향성 noise distortion. 파티클을 꺼도 공간면과 통로가 남아야 한다.
- *
- * L2는 광학 마스크를 3개로 분리한다 (지시서 §3):
- *   1 source cone  2 fog scattering  3 surface reflection
+ * uFieldMode: 0 합성 / 1 L1 표면만 / 2 source cone만 / 3 표면 반사만
  */
 
 export const spaceVert = /* glsl */`
   varying vec2 vUv;
   void main(){
     vUv = uv;
-    gl_Position = vec4(position.xy * 2.0, 0.0, 1.0);   /* 전체화면 삼각형/쿼드 */
+    gl_Position = vec4(position.xy * 2.0, 0.0, 1.0);
   }
 `
 
@@ -29,16 +31,17 @@ export const spaceFrag = /* glsl */`
   varying vec2 vUv;
 
   uniform float uTime, uAspect;
-  uniform float uFieldMode;      /* 0 = L1+L2, 1 = L1만, 2 = L2만 */
+  uniform float uFieldMode;
   uniform float uWarp, uFieldLevel, uCorridor, uShadow;
   uniform vec3  uAmbientCol, uSurfaceCol, uShadowCol;
-  uniform vec2  uLightOrigin, uLightDir;
-  uniform float uConeWidth, uConeFalloff, uConeLevel;
-  uniform float uScatterLevel, uReflectLevel, uSideLevel;
+  uniform vec2  uLightOrigin, uWarmOrigin;
+  uniform float uLightZ, uConeWidth, uConeFalloff, uConeLevel;
+  uniform float uScatterLevel, uReflectLevel, uSideLevel, uCoolLevel;
   uniform vec3  uLightCol, uCoolCol, uWarmCol;
-  uniform vec2  uWarmOrigin;
 
   ${NOISE_GLSL}
+  ${SHEETS_GLSL}
+  ${CORRIDOR_GLSL}
 
   float fbm2(vec2 p, float t){
     return snoise(vec3(p, t)) * 0.58
@@ -46,94 +49,108 @@ export const spaceFrag = /* glsl */`
          + snoise(vec3(p * 4.7 - 5.0, t * 0.7)) * 0.14;
   }
 
-  /* 비정형 곡면 한 장. 휘어진 중심선 주변의 가우시안 시트. */
-  float sheet(vec2 p, float yc, float amp, float freq, float phase, float bend, float thick){
-    float curve = yc + sin(p.x * freq + phase) * amp + bend * p.x * p.x;
-    float d = (p.y - curve) / thick;
-    return exp(-d * d);
-  }
-
   void main(){
-    /* 화면비 보정 좌표. 원점 중앙. */
     vec2 p = vec2((vUv.x - 0.5) * uAspect, vUv.y - 0.5);
-    float t = uTime * 0.014;
+    float t = uTime * 0.012;
 
-    /* 방향성 noise distortion — 곡면이 기계적으로 보이지 않게 */
+    /* warp는 표면 위치만 흔든다. 밝기로 쓰지 않는다. */
     vec2 w = p + vec2(
       fbm2(p * 1.15 + vec2(0.0, 3.1), t),
       fbm2(p * 1.15 + vec2(7.7, 0.0), t * 0.8)
     ) * uWarp;
 
-    /* ── L1. 비정형 곡면 3개 + 깊이 ────────────────────────────
-       depth 0 = 후경, 1 = 전경. 뒤로 갈수록 대비와 채도가 죽는다. */
-    // 뒤로 휘어지는 대형 곡면
-    float s0 = sheet(w, 0.30, 0.085, 1.7, 0.4, -0.30, 0.235);
-    // 중경 주곡면 — 좌상에서 우중앙으로 흐른다
-    float s1 = sheet(w, 0.02, 0.115, 1.2, 2.3, -0.16, 0.150);
-    // 전경 하단 곡면
-    float s2 = sheet(w, -0.34, 0.070, 2.1, 4.9,  0.22, 0.115);
+    float corr  = corridorField(w);
+    float carve = 1.0 - corr * uCorridor;
 
-    float dep0 = 0.12, dep1 = 0.52, dep2 = 0.86;
-
-    /* 화면 안쪽으로 이어지는 사선 통로 — 밀도를 깎아 길을 낸다 */
-    float corr = exp(-pow((w.y - (0.30 - 0.62 * w.x)) / 0.135, 2.0));
-    /* 완전히 어두운 음영면 — 좌하단. 본문·CTA의 가독성 확보 영역 */
+    /* 좌하단 음영면 — 본문·CTA 가독성 확보 영역 */
     float shad = exp(-pow((w.x + 0.46) / 0.42, 2.0)) * exp(-pow((w.y + 0.32) / 0.30, 2.0));
 
-    float carve = (1.0 - corr * uCorridor);
-    s0 *= carve; s1 *= carve; s2 *= carve;
+    /* ── 면별 조명 누적 ──────────────────────────────────────── */
+    vec3  surfCol = vec3(0.0);
+    float surfA   = 0.0;
+    float litSum  = 0.0;      // 표면 반사 총량 (디버그 C)
+    float depthMix = 0.0;
 
-    float field = s0 * 0.72 + s1 * 1.00 + s2 * 0.62;
-    float depth = (s0 * dep0 * 0.72 + s1 * dep1 + s2 * dep2 * 0.62) / max(field, 1e-3);
-    field = clamp(field, 0.0, 1.4);
+    for (int i = 0; i < SHEET_COUNT; i++){
+      SheetDef s = getSheet(i);
 
-    /* 깊이별 opacity field */
-    float fieldA = field * uFieldLevel * (0.55 + depth * 0.45);
+      /* 불완전한 면: 저주파 noise로 일부만 존재하게 한다.
+         경계를 전부 노출하지 않고 30~60%만 읽히게 하는 장치. */
+      float pres = smoothstep(s.presBias - 0.22, s.presBias + 0.26,
+                              fbm2(w * s.presScale + float(i) * 17.3, t * 0.6) * 0.5 + 0.5);
+      float core = sheetCore(s, w) * pres * carve;
+      if (core < 0.002) continue;
 
-    vec3 l1col = mix(uAmbientCol, uSurfaceCol, depth) * (0.35 + depth * 0.65);
-    l1col = mix(l1col, uShadowCol, shad * uShadow);
+      /* 표면 방향 */
+      vec3 N = sheetNormal(s, w.x);
+      /* 광원까지의 3D 방향. 면 위 위치마다 다르므로 한 면 안에서도 명암이 갈린다. */
+      vec3 L = normalize(vec3(uLightOrigin - w, uLightZ));
 
-    /* ── L2. 광학 마스크 3개 ──────────────────────────────────── */
-    // 1) source cone — 화면 좌상단 바깥에서 유입해 우중앙으로 사선 진행
+      float ndl  = max(dot(N, L), 0.0);
+      float rr   = pow(ndl, mix(3.2, 0.7, s.rough));       // roughness response
+      float dAtt = mix(0.45, 1.0, s.depth);                 // depth attenuation
+      float edge = smoothstep(0.0, 0.35, core);             // edge falloff
+
+      float surfaceLight = rr * dAtt * core * edge;
+
+      /* 기본 상태는 암부. 흡수가 클수록 그늘이 더 깊다. */
+      vec3 base = mix(uSurfaceCol * 0.30, uShadowCol, s.absorb);
+      /* 닿은 빛의 색: 후경 냉색 편향, 전경 난색 편향 */
+      vec3 tint = mix(uCoolCol, uWarmCol, clamp(s.tone * 0.5 + 0.5, 0.0, 1.0));
+      vec3 lit  = mix(uLightCol, tint, abs(s.tone) * 0.55);
+
+      surfCol += base * core + lit * surfaceLight * uReflectLevel;
+      surfA   += core;
+      litSum  += surfaceLight;
+      depthMix += core * s.depth;
+    }
+
+    surfA = clamp(surfA, 0.0, 1.0);
+    depthMix = surfA > 0.001 ? depthMix / surfA : 0.5;
+    surfCol = mix(surfCol, uShadowCol, shad * uShadow);
+
+    /* ── L2-1. source cone ──────────────────────────────────── */
     vec2  v    = p - uLightOrigin;
     float dist = length(v);
-    float ang  = acos(clamp(dot(v / max(dist, 1e-4), normalize(uLightDir)), -1.0, 1.0));
+    vec2  cdir = normalize(vec2(0.85, -0.40));
+    float ang  = acos(clamp(dot(v / max(dist, 1e-4), cdir), -1.0, 1.0));
     float cone = exp(-pow(ang / uConeWidth, 2.0)) * exp(-dist * uConeFalloff);
 
-    // 2) fog scattering — 스모그 층을 통과하며 3단계로 산란
-    float fog1 = fbm2(w * 1.05 + vec2(2.0, 0.0), t * 1.1) * 0.5 + 0.5;
-    float fog2 = fbm2(w * 2.10 - vec2(4.0, 1.0), t * 1.6) * 0.5 + 0.5;
-    float sc1 = cone * fog1;
-    float sc2 = cone * smoothstep(0.18, 0.62, cone) * fog2;
-    float sc3 = cone * smoothstep(0.45, 0.92, cone);
-    float scatter = sc1 * 0.50 + sc2 * 0.32 + sc3 * 0.18;
+    /* ── L2-2. fog scattering — 통로와 후경에만 냉색이 실린다 ── */
+    float fog1 = fbm2(w * 0.62 + vec2(2.0, 0.0), t * 1.1) * 0.5 + 0.5;
+    float sc   = cone * fog1 * (1.0 - surfA * 0.65);
+    /* mist blue는 통로와 후경 한정. 전체 면적의 15~20%만 차지하게 묶는다. */
+    float coolMask = clamp(corr * 0.75 + (1.0 - depthMix) * 0.45, 0.0, 1.0) * (1.0 - surfA * 0.5);
 
-    // 3) surface reflection — 공간면에 닿은 부분만 밝아진다
-    float reflect_ = cone * field * (0.30 + depth * 0.70);
-
-    // 보조광: 우하단 반사광. 주광원의 25~35%. 독립된 색 덩어리로 만들지 않는다.
+    /* ── L2-3. 난색 반사 — 전경 반사면에만 ───────────────────── */
     vec2  vw   = p - uWarmOrigin;
-    float warm = exp(-dot(vw, vw) * 2.6) * field * (0.25 + depth * 0.75);
+    float warm = exp(-dot(vw, vw) * 3.4) * surfA * smoothstep(0.55, 0.95, depthMix);
 
-    vec3 l2col = uLightCol * scatter * uScatterLevel
-               + uLightCol * reflect_ * uReflectLevel
-               + uCoolCol  * sc1 * uScatterLevel * 0.42
+    vec3 l2col = uLightCol * sc * uScatterLevel
+               + uCoolCol  * sc * coolMask * uCoolLevel
                + uWarmCol  * warm * uSideLevel;
-    float l2a = clamp(scatter * uScatterLevel * 0.9
-                    + reflect_ * uReflectLevel * 1.1
-                    + warm * uSideLevel * 0.9, 0.0, 1.0);
+    float l2a  = clamp(sc * uScatterLevel * 0.8 + sc * coolMask * uCoolLevel * 0.7
+                     + warm * uSideLevel * 0.9, 0.0, 1.0);
 
-    /* ── 합성 / 디버그 분리 ──────────────────────────────────── */
-    float onlyL1 = step(0.5, uFieldMode) * step(uFieldMode, 1.5);
-    float onlyL2 = step(1.5, uFieldMode);
-    float both   = 1.0 - onlyL1 - onlyL2;
+    /* ── 모드 분기 ──────────────────────────────────────────── */
+    float mL1   = step(0.5, uFieldMode) * step(uFieldMode, 1.5);
+    float mCone = step(1.5, uFieldMode) * step(uFieldMode, 2.5);
+    float mRefl = step(2.5, uFieldMode);
+    float mAll  = 1.0 - mL1 - mCone - mRefl;
 
-    vec3  col = l1col * (fieldA * (both + onlyL1)) + l2col * (both + onlyL2) * uConeLevel;
-    float a   = clamp(fieldA * (both + onlyL1) + l2a * (both + onlyL2) * uConeLevel, 0.0, 1.0);
+    vec3  col = surfCol * uFieldLevel * (mAll + mL1) + l2col * (mAll) * uConeLevel;
+    float a   = clamp(surfA * uFieldLevel * (mAll + mL1) + l2a * mAll * uConeLevel, 0.0, 1.0);
+
+    /* B: source cone만 */
+    col = mix(col, uLightCol * cone * 1.4, mCone);
+    a   = mix(a,   clamp(cone * 1.2, 0.0, 1.0), mCone);
+    /* C: 표면 반사만 */
+    col = mix(col, uLightCol * litSum * uReflectLevel * 1.6, mRefl);
+    a   = mix(a,   clamp(litSum * uReflectLevel * 1.8, 0.0, 1.0), mRefl);
 
     /* 후경일수록 채도를 낮춘다 */
-    float luma = dot(col, vec3(0.299, 0.587, 0.114));
-    col = mix(col, vec3(luma), (1.0 - depth) * 0.38);
+    float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    col = mix(col, vec3(luma), (1.0 - depthMix) * 0.34 * mAll);
 
     if (a < 0.002) discard;
     gl_FragColor = vec4(col, a);

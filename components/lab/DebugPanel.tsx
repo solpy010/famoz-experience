@@ -58,6 +58,9 @@ export default function DebugPanel() {
       shadow:        num('shadow', 0, 1, 0.01),
       surfaceCol:    vec('surfaceCol'),
       shadowCol:     vec('shadowCol', 0.005),
+      lightZ:        num('lightZ', 0.1, 3.0, 0.02),
+      coolLevel:     num('coolLevel', 0, 2, 0.02),
+      sheetBind:     num('sheetBind', 0, 1, 0.01),
       coneWidth:     num('coneWidth', 0.12, 1.4, 0.01),
       coneFalloff:   num('coneFalloff', 0.05, 2.5, 0.01),
       coneLevel:     num('coneLevel', 0, 2, 0.01),
@@ -113,7 +116,7 @@ export default function DebugPanel() {
     Debug: folder({
       view: {
         value: DEFAULT_PARAMS.view,
-        options: ['composite', 'l0', 'l1', 'l2', 'l1l2', 'far', 'mid', 'near', 'masks', 'velocity'],
+        options: ['composite', 'l0', 'l1', 'cone', 'reflect', 'l1l2', 'far', 'mid', 'near', 'dist', 'masks', 'velocity'],
         transient: true,
         onChange: (v: DebugView) => { labParams.view = v },
       },

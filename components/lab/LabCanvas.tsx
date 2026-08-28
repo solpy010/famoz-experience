@@ -117,6 +117,10 @@ export default function LabCanvas({
       uRevealCap:       { value: 0.25 },
       uLayerFilter:     { value: -1 },
       uSplatAniso:      { value: labParams.splatAniso },
+      uAspect:          { value: camera.aspect },
+      uSheetBind:       { value: labParams.sheetBind },
+      uLightOrigin:     { value: new THREE.Vector2(...labParams.lightOrigin) },
+      uLightZ:          { value: labParams.lightZ },
       uLagMicro:   { value: LAYER_RESPONSE.micro.lag },
       uLagMedium:  { value: LAYER_RESPONSE.medium.lag },
       uLagLarge:   { value: LAYER_RESPONSE.large.lag },
@@ -140,6 +144,10 @@ export default function LabCanvas({
     })
 
     /* ── 지오메트리 ───────────────────────────────────── */
+    const camInfo = {
+      z: CAM_Z, aspect: camera.aspect,
+      tanHalfFov: Math.tan((FOV * Math.PI / 180) * 0.5),
+    }
     let buffers: SplatBuffers | null = null
     const mainPoints = new THREE.Points(new THREE.BufferGeometry(), splatMat)
     const optPoints  = new THREE.Points(new THREE.BufferGeometry(), opticalMat)
@@ -152,7 +160,7 @@ export default function LabCanvas({
       buffers?.main.dispose()
       buffers?.optical.dispose()
       const n = Math.round(labParams.count * tierScale(tier))
-      buffers = buildSplatField(n, span, {
+      buffers = buildSplatField(n, span, camInfo, {
         threshold: labParams.densityThreshold,
         contrast: labParams.densityContrast,
         micro: labParams.microRatio,
@@ -187,6 +195,8 @@ export default function LabCanvas({
       uLightOrigin: { value: new THREE.Vector2(...labParams.lightOrigin) },
       uLightDir:    { value: new THREE.Vector2(...labParams.lightDir) },
       uWarmOrigin:  { value: new THREE.Vector2(...labParams.warmOrigin) },
+      uLightZ:      { value: labParams.lightZ },
+      uCoolLevel:   { value: labParams.coolLevel },
       uConeWidth:   { value: labParams.coneWidth },
       uConeFalloff: { value: labParams.coneFalloff },
       uConeLevel:   { value: labParams.coneLevel },
@@ -264,6 +274,9 @@ export default function LabCanvas({
       camera.updateProjectionMatrix()
       resolution.set(window.innerWidth, window.innerHeight)
       spaceUnis.uAspect.value = camera.aspect
+      camInfo.aspect = camera.aspect
+      splatUnis.uAspect.value = camera.aspect
+      opticalUnis.uAspect.value = camera.aspect
       span = computeSpan(camera)
       spanVec.set(span.x, span.y)
       pointer.setView(Math.tan((FOV * Math.PI / 180) * 0.5) * (CAM_Z - Z_MID), camera.aspect)
@@ -356,6 +369,8 @@ export default function LabCanvas({
       spaceUnis.uConeFalloff.value = p.coneFalloff
       spaceUnis.uConeLevel.value = p.coneLevel
       spaceUnis.uScatterLevel.value = p.scatterLevel
+      spaceUnis.uCoolLevel.value = p.coolLevel
+      spaceUnis.uLightZ.value = p.lightZ
       spaceUnis.uReflectLevel.value = p.reflectLevel
       spaceUnis.uSideLevel.value = p.sideLevel
       v3(spaceUnis.uAmbientCol.value, p.ambient)
@@ -367,14 +382,17 @@ export default function LabCanvas({
       spaceUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
       spaceUnis.uLightDir.value.set(p.lightDir[0], p.lightDir[1])
       spaceUnis.uWarmOrigin.value.set(p.warmOrigin[0], p.warmOrigin[1])
-      spaceUnis.uFieldMode.value = p.view === 'l1' ? 1 : p.view === 'l2' ? 2 : 0
+      spaceUnis.uFieldMode.value =
+        p.view === 'l1' ? 1 : p.view === 'cone' ? 2 : p.view === 'reflect' ? 3 : 0
 
       /* 검수 캡처별 레이어 가시성 */
       const v = p.view
       const showSpace = v === 'composite' || v === 'l1' || v === 'l2' || v === 'l1l2'
+                     || v === 'cone' || v === 'reflect'
       const showFog   = v === 'composite' || v === 'velocity'
       const layerOnly = LAYER_FILTER[v]
-      const showSplat = v === 'composite' || v === 'masks' || v === 'velocity' || layerOnly !== undefined
+      const showSplat = v === 'composite' || v === 'masks' || v === 'velocity'
+                     || v === 'dist' || layerOnly !== undefined
       spaceMesh.visible = showSpace
       for (const m of fogMeshes) m.visible = showFog
       mainPoints.visible = showSplat
@@ -384,6 +402,12 @@ export default function LabCanvas({
       opticalUnis.uLayerFilter.value = lf
       splatUnis.uSplatAniso.value = p.splatAniso
       opticalUnis.uSplatAniso.value = p.splatAniso
+      splatUnis.uSheetBind.value = p.sheetBind
+      opticalUnis.uSheetBind.value = p.sheetBind
+      splatUnis.uLightZ.value = p.lightZ
+      opticalUnis.uLightZ.value = p.lightZ
+      splatUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
+      opticalUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
 
       renderer.render(scene, camera)
       statsRef.current?.({ fps, points: stats.points, coverage: stats.coverage, tier })
