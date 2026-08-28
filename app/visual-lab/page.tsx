@@ -1,11 +1,11 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import ChromaticBackdrop from '../../components/lab/ChromaticBackdrop'
-import VolumetricLight from '../../components/lab/VolumetricLight'
-import LabCanvas from '../../components/lab/LabCanvas'
-import DebugPanel from '../../components/lab/DebugPanel'
-import { PointerField } from '../../components/lab/pointerField'
-import { labParams } from '../../components/lab/labParams'
+import ChromaticBackdrop from '../../components/visual/ChromaticBackdrop'
+import VolumetricLight from '../../components/visual/VolumetricLight'
+import VisualSystemCanvas from '../../components/visual/VisualSystemCanvas'
+import DebugPanel from '../../components/visual/DebugPanel'
+import { PointerField } from '../../components/visual/pointerField'
+import { visualParams } from '../../components/visual/visualParams'
 
 /**
  * /visual-lab — 배경 시스템 프로토타입.
@@ -40,8 +40,8 @@ export default function VisualLab() {
     let raf = 0, last = 0
     const tick = (t: number) => {
       raf = requestAnimationFrame(tick)
-      const v = node.dataset.view as typeof labParams.view | undefined
-      if (v && v !== labParams.view) labParams.view = v
+      const v = node.dataset.view as typeof visualParams.view | undefined
+      if (v && v !== visualParams.view) visualParams.view = v
       if (t - last < 100) return
       last = t
       node.dataset.state = JSON.stringify({
@@ -63,11 +63,11 @@ export default function VisualLab() {
   }, [])
 
   // 디버그 뷰에 따라 DOM 레이어 표시를 바꾼다
-  const [view, setView] = useState(labParams.view)
+  const [view, setView] = useState(visualParams.view)
   const [panel, setPanel] = useState(true)
   useEffect(() => {
     const id = setInterval(() => {
-      setView(labParams.view)
+      setView(visualParams.view)
       setPanel(document.getElementById('lab-debug')?.dataset.panel !== 'off')
     }, 200)
     return () => clearInterval(id)
@@ -88,7 +88,7 @@ export default function VisualLab() {
           알아야 하고, DOM gradient 두 장으로는 표면 반사를 만들 수 없다. */}
       {view === 'composite' && <VolumetricLight pointer={pointer} />}
 
-      <LabCanvas
+      <VisualSystemCanvas
         pointer={pointer}
         onStats={(s) => { statRef.current = s }}
       />

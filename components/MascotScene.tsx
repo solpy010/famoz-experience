@@ -229,8 +229,12 @@ export default function MascotScene() {
                     objectPosition: 'bottom center',
                     display: 'block',
                     transition: `height 0.9s ${EASE}, filter 0.7s ${EASE}`,
-                    filter: isInactive ? 'brightness(0.3)' : 'brightness(1)',
-                    dropShadow: isActive ? `0 0 40px ${char.accent}60` : 'none',
+                    /* dropShadow는 CSS 속성이 아니다. filter 안의 drop-shadow()로
+                       넣어야 실제로 적용된다. (기존 코드에서 무효였고 빌드도 막았다) */
+                    filter: [
+                      isInactive ? 'brightness(0.3)' : 'brightness(1)',
+                      isActive ? `drop-shadow(0 0 40px ${char.accent}60)` : '',
+                    ].filter(Boolean).join(' '),
                   }}
                 />
               </div>

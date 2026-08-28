@@ -1,99 +1,10 @@
 'use client'
-import { useRef, useEffect } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 
-function useParticleCanvas(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let raf = 0
-    const COUNT = window.innerWidth < 768 ? 35 : 90
-    const W = () => canvas.width
-    const H = () => canvas.height
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * Math.min(devicePixelRatio, 2)
-      canvas.height = canvas.offsetHeight * Math.min(devicePixelRatio, 2)
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    type P = { x: number; y: number; vx: number; vy: number; r: number; a: number; da: number }
-    const particles: P[] = Array.from({ length: COUNT }, () => ({
-      x: Math.random(), y: Math.random(),
-      vx: (Math.random() - 0.5) * 0.00015,
-      vy: (Math.random() - 0.5) * 0.0001,
-      r: Math.random() * 1.8 + 0.6,
-      a: Math.random() * 0.45 + 0.08,
-      da: (Math.random() - 0.5) * 0.003,
-    }))
-
-    let mouse = { x: 0.5, y: 0.5 }
-    const onMouse = (e: MouseEvent) => { mouse = { x: e.clientX / innerWidth, y: e.clientY / innerHeight } }
-    window.addEventListener('mousemove', onMouse)
-
-    const draw = () => {
-      ctx.clearRect(0, 0, W(), H())
-
-      // Beam — deep plum
-      const beam = ctx.createRadialGradient(W() * 0.7, H() * 0.2, 0, W() * 0.7, H() * 0.2, W() * 0.65)
-      beam.addColorStop(0, 'rgba(80,20,120,0.12)')
-      beam.addColorStop(1, 'transparent')
-      ctx.fillStyle = beam
-      ctx.fillRect(0, 0, W(), H())
-
-      // Architectural lines
-      ;[0.18, 0.44, 0.79].forEach((x, i) => {
-        const g = ctx.createLinearGradient(0, 0, 0, H())
-        g.addColorStop(0, 'transparent')
-        g.addColorStop(0.35, `rgba(170,90,210,${[0.07, 0.04, 0.05][i]})`)
-        g.addColorStop(1, 'transparent')
-        ctx.strokeStyle = g
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(W() * x, 0)
-        ctx.lineTo(W() * x, H())
-        ctx.stroke()
-      })
-
-      particles.forEach((p) => {
-        p.vx += (mouse.x - p.x) * 0.000008
-        p.vy += (mouse.y - p.y) * 0.000005
-        p.vx *= 0.998; p.vy *= 0.998
-        p.x = (p.x + p.vx + 1) % 1
-        p.y = (p.y + p.vy + 1) % 1
-        p.a = Math.max(0.05, Math.min(0.6, p.a + p.da))
-        if (p.a <= 0.05 || p.a >= 0.6) p.da *= -1
-        ctx.beginPath()
-        ctx.arc(p.x * W(), p.y * H(), p.r * Math.min(devicePixelRatio, 2), 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(192,122,181,${p.a})`
-        ctx.fill()
-      })
-
-      raf = requestAnimationFrame(draw)
-    }
-
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { raf || draw() } else { cancelAnimationFrame(raf); raf = 0 } }, { threshold: 0 })
-    io.observe(canvas)
-    draw()
-
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
-      window.removeEventListener('mousemove', onMouse)
-      io.disconnect()
-    }
-  }, [canvasRef])
-}
-
-interface Props { introComplete?: boolean }
+type Props = { introComplete: boolean }
 
 export default function HeroScene({ introComplete }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  useParticleCanvas(canvasRef)
 
   // Trigger hero reveals after intro completes
   useEffect(() => {
@@ -120,31 +31,6 @@ export default function HeroScene({ introComplete }: Props) {
         overflow: 'hidden',
       }}
     >
-      {/* Layer 1 — Far: deep gradient (moves 4px with pointer) */}
-      <div
-        aria-hidden="true"
-        className="px-far"
-        style={{
-          position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
-          background: `
-            radial-gradient(ellipse 70% 65% at 70% 20%, rgba(40,8,70,0.85) 0%, transparent 65%),
-            radial-gradient(ellipse 50% 60% at 15% 85%, rgba(12,4,30,0.7) 0%, transparent 60%)
-          `,
-        }}
-      />
-
-      {/* Layer 2 — Mid: canvas particle field (moves 10px with pointer) */}
-      <div
-        aria-hidden="true"
-        className="px-mid"
-        style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-        />
-      </div>
-
       {/* Layer 3 — Near: architectural accent lines (moves 14px with pointer) */}
       <div
         aria-hidden="true"
@@ -186,7 +72,8 @@ export default function HeroScene({ introComplete }: Props) {
           <p
             data-reveal
             className="t-label"
-            style={{ color: 'var(--ac-magenta)', marginBottom: 'clamp(1.5rem, 3vh, 2.5rem)' }}
+            data-safe="body"
+            style={{ color: 'var(--eyebrow)', marginBottom: 'clamp(1.5rem, 3vh, 2.5rem)' }}
           >
             공간 경험 디자인 스튜디오
           </p>
@@ -194,15 +81,18 @@ export default function HeroScene({ introComplete }: Props) {
             className="t-hero"
             style={{ marginBottom: 'clamp(1.75rem, 3.5vh, 3rem)' }}
           >
-            <span data-reveal style={{ display: 'block' }}>상상을</span>
-            <span data-reveal style={{ display: 'block' }}>
-              <span className="kw-glitch grd-magenta" data-text="살아있는 공간 경험">살아있는 공간 경험</span>으로
+            {/* 의미 라인마다 안전영역. 블록 하나로 묶으면 큰 사각 암부가 생기고
+                글자 사이에 밝은 입자가 끼는 것도 막지 못한다. */}
+            <span data-reveal data-safe="headline" style={{ display: 'block' }}>상상을</span>
+            <span data-reveal data-safe="headline" style={{ display: 'block' }}>
+              살아있는 <span className="hl-champagne">공간 경험</span>으로
             </span>
-            <span data-reveal style={{ display: 'block' }}>디자인합니다.</span>
+            <span data-reveal data-safe="headline" style={{ display: 'block' }}>디자인합니다.</span>
           </h1>
           <p
             data-reveal
             className="t-body"
+            data-safe="body"
             style={{ maxWidth: '42ch', marginBottom: 'clamp(2.5rem, 5vh, 4.5rem)' }}
           >
             콘텐츠·미디어·AI를 연결해
@@ -212,6 +102,7 @@ export default function HeroScene({ introComplete }: Props) {
           <Link
             href="#works"
             data-reveal
+            data-safe="cta"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
               fontSize: 'clamp(0.82rem, 1vw, 0.92rem)', fontWeight: 700,

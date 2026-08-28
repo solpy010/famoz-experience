@@ -2,9 +2,9 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { detectTier } from '../sceneStore'
-import { labParams, labEvents, LAYER_RESPONSE, VIEW_INDEX, LAYER_FILTER } from './labParams'
-import { buildSplatField, type Span, type SplatBuffers } from './labGeometry'
-import { splatVert, splatFrag, fogVert, fogFrag } from './labShaders'
+import { visualParams, visualEvents, LAYER_RESPONSE, VIEW_INDEX, LAYER_FILTER } from './visualParams'
+import { buildSplatField, type Span, type SplatBuffers } from './particleField'
+import { splatVert, splatFrag, fogVert, fogFrag } from './particleShaders'
 import { MaskField } from './maskField'
 import { spaceVert, spaceFrag } from './spaceFieldShader'
 import type { PointerField } from './pointerField'
@@ -29,15 +29,28 @@ function computeSpan(camera: THREE.PerspectiveCamera): Span {
 }
 
 function tierScale(tier: 0 | 1 | 2 | 3): number {
-  return tier === 3 ? 1 : tier === 2 ? 0.52 : tier === 1 ? 0.20 : 0
+  // tier 1 = 모바일. 40k * 0.30 = 12k (지시서 §8 권장 10~14k)
+  return tier === 3 ? 1 : tier === 2 ? 0.52 : tier === 1 ? 0.30 : 0
 }
 
-export default function LabCanvas({
+export type VisualStats = {
+  fps: number; points: number; coverage: number; tier: number
+  dpr: number; frameMs: number
+  drawCalls: number; geometries: number; textures: number; programs: number
+}
+
+export default function VisualSystemCanvas({
   pointer,
+  active = true,
+  intensity = 1,
   onStats,
 }: {
   pointer: PointerField
-  onStats?: (s: { fps: number; points: number; coverage: number; tier: number }) => void
+  /** false면 렌더를 멈춘다. Hero를 벗어났을 때 고비용 갱신을 끊는 용도. */
+  active?: boolean
+  /** 0~1. 인트로에서 파티클 밀도와 공간면을 올리는 램프. */
+  intensity?: number
+  onStats?: (s: VisualStats) => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -45,6 +58,10 @@ export default function LabCanvas({
      통째로 재생성되므로 ref로 받는다. */
   const statsRef = useRef(onStats)
   statsRef.current = onStats
+  const activeRef = useRef(active)
+  activeRef.current = active
+  const intensityRef = useRef(intensity)
+  intensityRef.current = intensity
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -80,47 +97,47 @@ export default function LabCanvas({
       uStrokes:         { value: strokes },
       uStrokeCount:     { value: 0 },
       uPointerRadius:   { value: 0.6 },
-      uPointerForce:    { value: labParams.pointerForce },
-      uMaxDisp:         { value: labParams.maxDisplacement },
-      uSwirl:           { value: labParams.swirl },
-      uMaxPointerSpeed: { value: labParams.maxPointerSpeed },
+      uPointerForce:    { value: visualParams.pointerForce },
+      uMaxDisp:         { value: visualParams.maxDisplacement },
+      uSwirl:           { value: visualParams.swirl },
+      uMaxPointerSpeed: { value: visualParams.maxPointerSpeed },
       uCoreTex:         { value: mask.coreTex },
       uSoftTex:         { value: mask.softTex },
       uMaskTexel:       { value: maskTexel },
-      uMainLight:       { value: new THREE.Vector3(...labParams.mainLight) },
-      uMainColor:       { value: new THREE.Vector3(...labParams.mainLightColor) },
-      uSideLight:       { value: new THREE.Vector3(...labParams.sideLight) },
-      uSideColor:       { value: new THREE.Vector3(...labParams.sideLightColor) },
-      uSideLevel:       { value: labParams.sideLevel },
-      uAmbient:         { value: new THREE.Vector3(...labParams.ambient) },
-      uAlbedoNear:      { value: new THREE.Vector3(...labParams.albedoNear) },
-      uAlbedoFar:       { value: new THREE.Vector3(...labParams.albedoFar) },
-      uFogAbsorb:       { value: labParams.fogAbsorb },
-      uAnisotropy:      { value: labParams.scatterAnisotropy },
-      uReflectance:     { value: labParams.reflectance },
-      uExposure:        { value: labParams.exposureResponse },
-      uContentSuppress: { value: labParams.contentSuppression },
+      uMainLight:       { value: new THREE.Vector3(...visualParams.mainLight) },
+      uMainColor:       { value: new THREE.Vector3(...visualParams.mainLightColor) },
+      uSideLight:       { value: new THREE.Vector3(...visualParams.sideLight) },
+      uSideColor:       { value: new THREE.Vector3(...visualParams.sideLightColor) },
+      uSideLevel:       { value: visualParams.sideLevel },
+      uAmbient:         { value: new THREE.Vector3(...visualParams.ambient) },
+      uAlbedoNear:      { value: new THREE.Vector3(...visualParams.albedoNear) },
+      uAlbedoFar:       { value: new THREE.Vector3(...visualParams.albedoFar) },
+      uFogAbsorb:       { value: visualParams.fogAbsorb },
+      uAnisotropy:      { value: visualParams.scatterAnisotropy },
+      uReflectance:     { value: visualParams.reflectance },
+      uExposure:        { value: visualParams.exposureResponse },
+      uContentSuppress: { value: visualParams.contentSuppression },
       uView:            { value: 0 },
     })
 
     const splatUnis = {
       ...shared(),
-      uSizeScale:       { value: labParams.sizeScale },
-      uOpacity:         { value: labParams.opacity },
-      uSoftness:        { value: labParams.gaussianSoftness },
-      uBaseCurlScale:   { value: labParams.baseCurlScale },
-      uBaseCurlStrength:{ value: labParams.baseCurlStrength },
-      uBrightSuppress:  { value: labParams.brightnessSuppression },
-      uPointerSuppress: { value: labParams.pointerSuppression },
-      uCoreOcclusion:   { value: labParams.coreOcclusion },
-      uDeflect:         { value: labParams.deflect },
+      uSizeScale:       { value: visualParams.sizeScale },
+      uOpacity:         { value: visualParams.opacity },
+      uSoftness:        { value: visualParams.gaussianSoftness },
+      uBaseCurlScale:   { value: visualParams.baseCurlScale },
+      uBaseCurlStrength:{ value: visualParams.baseCurlStrength },
+      uBrightSuppress:  { value: visualParams.brightnessSuppression },
+      uPointerSuppress: { value: visualParams.pointerSuppression },
+      uCoreOcclusion:   { value: visualParams.coreOcclusion },
+      uDeflect:         { value: visualParams.deflect },
       uRevealCap:       { value: 0.25 },
       uLayerFilter:     { value: -1 },
-      uSplatAniso:      { value: labParams.splatAniso },
+      uSplatAniso:      { value: visualParams.splatAniso },
       uAspect:          { value: camera.aspect },
-      uSheetBind:       { value: labParams.sheetBind },
-      uLightOrigin:     { value: new THREE.Vector2(...labParams.lightOrigin) },
-      uLightZ:          { value: labParams.lightZ },
+      uSheetBind:       { value: visualParams.sheetBind },
+      uLightOrigin:     { value: new THREE.Vector2(...visualParams.lightOrigin) },
+      uLightZ:          { value: visualParams.lightZ },
       uLagMicro:   { value: LAYER_RESPONSE.micro.lag },
       uLagMedium:  { value: LAYER_RESPONSE.medium.lag },
       uLagLarge:   { value: LAYER_RESPONSE.large.lag },
@@ -132,7 +149,7 @@ export default function LabCanvas({
       uTauLarge:   { value: LAYER_RESPONSE.large.tau },
     }
     // 광학 입자는 Additive라 노출 상한을 조금 더 준다 (§9: 최대 1.8배)
-    const opticalUnis = { ...splatUnis, uRevealCap: { value: 0.8 }, uOpacity: { value: labParams.opacity * 0.55 } }
+    const opticalUnis = { ...splatUnis, uRevealCap: { value: 0.8 }, uOpacity: { value: visualParams.opacity * 0.55 } }
 
     const splatMat = new THREE.ShaderMaterial({
       vertexShader: splatVert, fragmentShader: splatFrag, uniforms: splatUnis,
@@ -159,14 +176,15 @@ export default function LabCanvas({
     const rebuild = () => {
       buffers?.main.dispose()
       buffers?.optical.dispose()
-      const n = Math.round(labParams.count * tierScale(tier))
+      const n = Math.round(visualParams.count * tierScale(tier))
       buffers = buildSplatField(n, span, camInfo, {
-        threshold: labParams.densityThreshold,
-        contrast: labParams.densityContrast,
-        micro: labParams.microRatio,
-        medium: labParams.mediumRatio,
-        additiveRatio: labParams.additiveRatio,
-        nearRatio: labParams.nearRatio,
+        threshold: visualParams.densityThreshold,
+        contrast: visualParams.densityContrast,
+        micro: visualParams.microRatio,
+        medium: visualParams.mediumRatio,
+        additiveRatio: visualParams.additiveRatio,
+        // 모바일은 전경 입자를 쓰지 않는다 (지시서 §8)
+        nearRatio: tier <= 1 ? 0 : visualParams.nearRatio,
       })
       mainPoints.geometry = buffers.main
       optPoints.geometry = buffers.optical
@@ -176,7 +194,7 @@ export default function LabCanvas({
       }
     }
     rebuild()
-    let lastRebuild = labEvents.rebuild
+    let lastRebuild = visualEvents.rebuild
 
     /* ── L1 Spatial Field + L2 Volumetric Light ────────
        파티클보다 먼저 공간의 실루엣을 만든다. 씬에서 가장 먼저 그려지도록
@@ -185,27 +203,27 @@ export default function LabCanvas({
       uTime:        { value: 0 },
       uAspect:      { value: camera.aspect },
       uFieldMode:   { value: 0 },
-      uWarp:        { value: labParams.warp },
-      uFieldLevel:  { value: labParams.fieldLevel },
-      uCorridor:    { value: labParams.corridor },
-      uShadow:      { value: labParams.shadow },
-      uAmbientCol:  { value: new THREE.Vector3(...labParams.ambient) },
-      uSurfaceCol:  { value: new THREE.Vector3(...labParams.surfaceCol) },
-      uShadowCol:   { value: new THREE.Vector3(...labParams.shadowCol) },
-      uLightOrigin: { value: new THREE.Vector2(...labParams.lightOrigin) },
-      uLightDir:    { value: new THREE.Vector2(...labParams.lightDir) },
-      uWarmOrigin:  { value: new THREE.Vector2(...labParams.warmOrigin) },
-      uLightZ:      { value: labParams.lightZ },
-      uCoolLevel:   { value: labParams.coolLevel },
-      uConeWidth:   { value: labParams.coneWidth },
-      uConeFalloff: { value: labParams.coneFalloff },
-      uConeLevel:   { value: labParams.coneLevel },
-      uScatterLevel:{ value: labParams.scatterLevel },
-      uReflectLevel:{ value: labParams.reflectLevel },
-      uSideLevel:   { value: labParams.sideLevel },
-      uLightCol:    { value: new THREE.Vector3(...labParams.mainLightColor) },
-      uCoolCol:     { value: new THREE.Vector3(...labParams.coolCol) },
-      uWarmCol:     { value: new THREE.Vector3(...labParams.sideLightColor) },
+      uWarp:        { value: visualParams.warp },
+      uFieldLevel:  { value: visualParams.fieldLevel },
+      uCorridor:    { value: visualParams.corridor },
+      uShadow:      { value: visualParams.shadow },
+      uAmbientCol:  { value: new THREE.Vector3(...visualParams.ambient) },
+      uSurfaceCol:  { value: new THREE.Vector3(...visualParams.surfaceCol) },
+      uShadowCol:   { value: new THREE.Vector3(...visualParams.shadowCol) },
+      uLightOrigin: { value: new THREE.Vector2(...visualParams.lightOrigin) },
+      uLightDir:    { value: new THREE.Vector2(...visualParams.lightDir) },
+      uWarmOrigin:  { value: new THREE.Vector2(...visualParams.warmOrigin) },
+      uLightZ:      { value: visualParams.lightZ },
+      uCoolLevel:   { value: visualParams.coolLevel },
+      uConeWidth:   { value: visualParams.coneWidth },
+      uConeFalloff: { value: visualParams.coneFalloff },
+      uConeLevel:   { value: visualParams.coneLevel },
+      uScatterLevel:{ value: visualParams.scatterLevel },
+      uReflectLevel:{ value: visualParams.reflectLevel },
+      uSideLevel:   { value: visualParams.sideLevel },
+      uLightCol:    { value: new THREE.Vector3(...visualParams.mainLightColor) },
+      uCoolCol:     { value: new THREE.Vector3(...visualParams.coolCol) },
+      uWarmCol:     { value: new THREE.Vector3(...visualParams.sideLightColor) },
     }
     const spaceMat = new THREE.ShaderMaterial({
       vertexShader: spaceVert, fragmentShader: spaceFrag, uniforms: spaceUnis,
@@ -231,8 +249,8 @@ export default function LabCanvas({
         ...shared(),
         uLayer:       { value: d.layer },
         uOpacity:     { value: d.opacity },
-        uFogDensity:  { value: labParams.fogDensity },
-        uFogScattering:{ value: labParams.fogScattering },
+        uFogDensity:  { value: visualParams.fogDensity },
+        uFogScattering:{ value: visualParams.fogScattering },
         uResolution:  { value: resolution },
         uLagFog:      { value: LAYER_RESPONSE.fog.lag },
         uForceFog:    { value: LAYER_RESPONSE.fog.force },
@@ -288,6 +306,10 @@ export default function LabCanvas({
 
     /* ── RAF ──────────────────────────────────────────── */
     let raf = 0, time = 0, last = performance.now(), frames = 0, fpsT = 0, fps = 0, tick = 0
+    let lastStats: VisualStats = {
+      fps: 0, points: 0, coverage: 0, tier, dpr, frameMs: 0,
+      drawCalls: 0, geometries: 0, textures: 0, programs: 0,
+    }
     const v3 = (t: THREE.Vector3, s: [number, number, number]) => t.set(s[0], s[1], s[2])
 
     const frame = () => {
@@ -297,11 +319,16 @@ export default function LabCanvas({
       last = now; time += dt; frames++; fpsT += dt
       if (fpsT >= 0.5) { fps = frames / fpsT; frames = 0; fpsT = 0 }
 
-      if (labEvents.rebuild !== lastRebuild) { lastRebuild = labEvents.rebuild; rebuild() }
+      if (visualEvents.rebuild !== lastRebuild) { lastRebuild = visualEvents.rebuild; rebuild() }
       if (++tick % 30 === 0) syncMask()
 
+      /* Hero를 벗어나면 렌더와 유니폼 갱신을 멈춘다. 씬은 유지해 복귀가 즉시
+         되도록 하되, 프레임 비용은 0에 가깝게 만든다. */
+      if (!activeRef.current) { statsRef.current?.({ ...lastStats, fps: 0, frameMs: 0 }); return }
+
       pointer.update(dt)
-      const p = labParams
+      const p = visualParams
+      const gain = Math.max(0, Math.min(1, intensityRef.current))
       const viewIdx = VIEW_INDEX[p.view]
 
       // 포인터 반경은 화면 너비 비율 → 월드 단위
@@ -334,7 +361,7 @@ export default function LabCanvas({
       applyShared(splatUnis as unknown as Record<string, { value: unknown }>)
       applyShared(opticalUnis as unknown as Record<string, { value: unknown }>)
       splatUnis.uSizeScale.value = p.sizeScale
-      splatUnis.uOpacity.value = p.opacity
+      splatUnis.uOpacity.value = p.opacity * gain
       splatUnis.uSoftness.value = p.gaussianSoftness
       splatUnis.uBaseCurlScale.value = p.baseCurlScale
       splatUnis.uBaseCurlStrength.value = p.baseCurlStrength
@@ -343,7 +370,7 @@ export default function LabCanvas({
       splatUnis.uCoreOcclusion.value = p.coreOcclusion
       splatUnis.uDeflect.value = p.deflect
       opticalUnis.uSizeScale.value = p.sizeScale
-      opticalUnis.uOpacity.value = p.opacity * 0.55
+      opticalUnis.uOpacity.value = p.opacity * 0.55 * gain
       opticalUnis.uSoftness.value = p.gaussianSoftness
       opticalUnis.uBaseCurlScale.value = p.baseCurlScale
       opticalUnis.uBaseCurlStrength.value = p.baseCurlStrength
@@ -362,12 +389,12 @@ export default function LabCanvas({
       /* space field */
       spaceUnis.uTime.value = time
       spaceUnis.uWarp.value = p.warp
-      spaceUnis.uFieldLevel.value = p.fieldLevel
+      spaceUnis.uFieldLevel.value = p.fieldLevel * (0.25 + gain * 0.75)
       spaceUnis.uCorridor.value = p.corridor
       spaceUnis.uShadow.value = p.shadow
       spaceUnis.uConeWidth.value = p.coneWidth
       spaceUnis.uConeFalloff.value = p.coneFalloff
-      spaceUnis.uConeLevel.value = p.coneLevel
+      spaceUnis.uConeLevel.value = p.coneLevel * (0.18 + gain * 0.82)
       spaceUnis.uScatterLevel.value = p.scatterLevel
       spaceUnis.uCoolLevel.value = p.coolLevel
       spaceUnis.uLightZ.value = p.lightZ
@@ -410,7 +437,16 @@ export default function LabCanvas({
       opticalUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
 
       renderer.render(scene, camera)
-      statsRef.current?.({ fps, points: stats.points, coverage: stats.coverage, tier })
+      const info = renderer.info
+      lastStats = {
+        fps, points: stats.points, coverage: stats.coverage, tier,
+        dpr, frameMs: dt * 1000,
+        drawCalls: info.render.calls,
+        geometries: info.memory.geometries,
+        textures: info.memory.textures,
+        programs: info.programs?.length ?? 0,
+      }
+      statsRef.current?.(lastStats)
     }
     raf = requestAnimationFrame(frame)
 

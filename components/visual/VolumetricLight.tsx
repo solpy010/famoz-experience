@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
-import { labParams, LAYER_RESPONSE } from './labParams'
+import { visualParams, LAYER_RESPONSE } from './visualParams'
 import type { PointerField } from './pointerField'
 
 /**
@@ -28,7 +28,7 @@ export default function VolumetricLight({ pointer }: { pointer: PointerField }) 
       const t = (performance.now() - t0) / 1000
       // 광원은 포인터를 거의 따라가지 않는다. 지연이 가장 크고 힘이 가장 약하다.
       const d = pointer.delayed(LAYER_RESPONSE.light.lag)
-      const ex = 1 + d.speed * labParams.exposureResponse * 14
+      const ex = 1 + d.speed * visualParams.exposureResponse * 14
 
       // 이동량 상한 4px (문서 §8: 광원·스모그 2~4px)
       const px = Math.max(-4, Math.min(4, d.vx * 260))

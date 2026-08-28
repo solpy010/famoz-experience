@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 
 interface Props {
   color1: string
@@ -17,7 +17,7 @@ function hexToRgb(hex: string) {
   }
 }
 
-export default function DistortionCanvas({ color1, color2, opacity = 1, mouseForce = 2 }: Props) {
+function DistortionCanvasInner({ color1, color2, opacity = 1, mouseForce = 2 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -267,5 +267,36 @@ export default function DistortionCanvas({ color1, color2, opacity = 1, mouseFor
         opacity,
       }}
     />
+  )
+}
+
+
+/**
+ * 뷰포트 근처일 때만 캔버스를 마운트한다.
+ *
+ * 이 컴포넌트는 세 섹션에 항상 붙어 있어 Hero를 보는 동안에도 canvas 3개와
+ * RAF 3개를 점유하고 있었다. 통합 목표인 "안정 상태 Canvas 1개"를 위해
+ * IntersectionObserver로 게이트한다. 언마운트 시 내부 훅의 cleanup이
+ * RAF와 리스너를 정리한다.
+ */
+export default function DistortionCanvas(props: Props) {
+  const hostRef = useRef<HTMLDivElement>(null)
+  const [near, setNear] = useState(false)
+
+  useEffect(() => {
+    const el = hostRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([e]) => setNear(e.isIntersecting),
+      { rootMargin: '25% 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  return (
+    <div ref={hostRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      {near && <DistortionCanvasInner {...props} />}
+    </div>
   )
 }

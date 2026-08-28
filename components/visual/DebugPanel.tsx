@@ -1,19 +1,19 @@
 'use client'
 import { Leva, useControls, folder } from 'leva'
-import { labParams, requestRebuild, DEFAULT_PARAMS, type LabParams, type DebugView } from './labParams'
+import { visualParams, requestRebuild, DEFAULT_PARAMS, type VisualParams, type DebugView } from './visualParams'
 
 /**
  * Leva 디버그 패널 (문서 §12).  z-index 30.
  *
  * 모든 입력은 `transient: true`. 슬라이더를 움직여도 React는 리렌더되지 않고
- * onChange가 labParams를 직접 변형하며, RAF 루프가 다음 프레임에 uniform으로
+ * onChange가 visualParams를 직접 변형하며, RAF 루프가 다음 프레임에 uniform으로
  * 반영한다.
  *
  * 버퍼를 다시 만들어야 하는 값(입자 수·분포)만 requestRebuild()를 호출한다.
  */
 
-type NumKey = { [K in keyof LabParams]: LabParams[K] extends number ? K : never }[keyof LabParams]
-type VecKey = { [K in keyof LabParams]: LabParams[K] extends [number, number, number] ? K : never }[keyof LabParams]
+type NumKey = { [K in keyof VisualParams]: VisualParams[K] extends number ? K : never }[keyof VisualParams]
+type VecKey = { [K in keyof VisualParams]: VisualParams[K] extends [number, number, number] ? K : never }[keyof VisualParams]
 
 function num(k: NumKey, min: number, max: number, step: number, rebuild = false) {
   return {
@@ -21,7 +21,7 @@ function num(k: NumKey, min: number, max: number, step: number, rebuild = false)
     min, max, step,
     transient: true as const,
     onChange: (v: number) => {
-      labParams[k] = v
+      visualParams[k] = v
       if (rebuild) requestRebuild()
     },
   }
@@ -32,7 +32,7 @@ function vec(k: VecKey, step = 0.02) {
     value: DEFAULT_PARAMS[k],
     step,
     transient: true as const,
-    onChange: (v: [number, number, number]) => { labParams[k] = v },
+    onChange: (v: [number, number, number]) => { visualParams[k] = v },
   }
 }
 
@@ -118,7 +118,7 @@ export default function DebugPanel() {
         value: DEFAULT_PARAMS.view,
         options: ['composite', 'l0', 'l1', 'cone', 'reflect', 'l1l2', 'far', 'mid', 'near', 'dist', 'masks', 'velocity'],
         transient: true,
-        onChange: (v: DebugView) => { labParams.view = v },
+        onChange: (v: DebugView) => { visualParams.view = v },
       },
     }, { collapsed: false }),
   }))

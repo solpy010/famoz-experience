@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { labParams } from './labParams'
+import { visualParams } from './visualParams'
 
 /**
  * 포인터 입력 처리 (문서 §6·§7)
@@ -77,7 +77,7 @@ export class PointerField {
   }
 
   update(dt: number) {
-    const p = labParams
+    const p = visualParams
     this.clock += dt
 
     /* 모든 감쇠·평활 계수는 60fps 기준으로 정규화한다. 그렇지 않으면 문서가

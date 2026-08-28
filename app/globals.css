@@ -78,6 +78,12 @@
   --border: rgba(255,255,255,0.07);
 
   --ac-magenta: #C07AB5;
+
+  /* Hero 타이포 (지시서 §7). 주광원이 헤드라인 뒤에 있으므로 Ivory 고정.
+     라벤더 강조는 배경 주광원과 같은 색이라 글자가 묻힌다. */
+  --ivory: #EEE8DF;
+  --champagne: #D8CDBD;
+  --eyebrow: #B5C4CB;
   --ac-emerald: #3DC992;
   --ac-cyan: #52BFFF;
   --ac-orange: #E8955A;
@@ -397,3 +403,8 @@ body.intro-active [data-reveal].is-visible {
   .kw-glitch.is-visible::before, .kw-glitch.is-visible::after { animation: none !important; display: none !important; }
 }
 :focus-visible { outline: 2px solid var(--ac-magenta); outline-offset: 4px; }
+
+/* Hero 헤드라인 — Warm Ivory. 강조는 Pale Champagne 한 구절로 제한한다. */
+#hero .t-hero { color: var(--ivory); text-shadow: 0 2px 30px rgba(13, 11, 20, .72); }
+#hero .hl-champagne { color: var(--champagne); }
+#hero .t-body { color: #C3BCB4; text-shadow: 0 1px 16px rgba(13, 11, 20, .55); }

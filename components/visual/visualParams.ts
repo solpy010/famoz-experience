@@ -13,7 +13,7 @@ export type DebugView =
   | 'cone' | 'reflect'                // B, C — L2 광학 마스크 분리
   | 'masks' | 'velocity' | 'dist'     // 디버그 (E = dist)
 
-export type LabParams = {
+export type VisualParams = {
   /* ── Composition ─────────────────────────────── */
   imageFieldOpacity: number
   densityThreshold: number
@@ -100,7 +100,7 @@ export type LabParams = {
  * HERO 프리셋: Deep Plum + Graphite Indigo 배경 /
  * 주광원 Smoky Lavender / 보조광 Champagne Amber (famoz-art-direction)
  */
-export const DEFAULT_PARAMS: LabParams = {
+export const DEFAULT_PARAMS: VisualParams = {
   imageFieldOpacity: 0.30,
   densityThreshold: 0.38,
   densityContrast: 1.35,
@@ -181,15 +181,15 @@ export const DEFAULT_PARAMS: LabParams = {
 }
 
 /** 살아 있는 단일 인스턴스. Leva와 RAF 루프가 공유한다. */
-export const labParams: LabParams = { ...DEFAULT_PARAMS }
+export const visualParams: VisualParams = { ...DEFAULT_PARAMS }
 
 /**
  * 지오메트리 재생성 요청 카운터.
  * 입자 수·분포 임계값처럼 버퍼를 다시 만들어야 하는 값이 바뀌면 증가시킨다.
  * 캔버스가 매 프레임 비교해 변했을 때만 재생성한다.
  */
-export const labEvents = { rebuild: 0 }
-export function requestRebuild() { labEvents.rebuild++ }
+export const visualEvents = { rebuild: 0 }
+export function requestRebuild() { visualEvents.rebuild++ }
 
 /** 디버그 뷰 → 셰이더 uView 값 */
 export const VIEW_INDEX: Record<DebugView, number> = {
