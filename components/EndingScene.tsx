@@ -15,11 +15,19 @@ const PARTNERS = [
 ]
 
 const CONTACT = [
-  { label: '전화', value: '02-000-0000', href: 'tel:02-000-0000' },
+  { label: '전화', value: '02-332-8148', href: 'tel:02-332-8148' },
+  { label: '팩스', value: '02-332-8147', href: undefined },
   { label: '대표 이메일', value: 'famoz@famoz.co.kr', href: 'mailto:famoz@famoz.co.kr' },
-  { label: '부대표 이메일', value: 'info@famoz.co.kr', href: 'mailto:info@famoz.co.kr' },
-  { label: '주소', value: '서울특별시 마포구 월드컵북로 400', href: undefined },
-  { label: '웹사이트', value: 'famoz.co.kr', href: 'https://famoz.co.kr' },
+  { label: '주소', value: '(04075) 서울시 마포구 토정로 121-1', href: undefined },
+  { label: '웹사이트', value: 'www.famoz.co.kr', href: 'https://www.famoz.co.kr' },
+]
+
+/** 사업자 정보 — 푸터 고지 */
+const BUSINESS = [
+  '㈜파모즈',
+  '대표 원정환',
+  '2013년 6월 1일 설립',
+  '사업자등록번호 211-88-95804',
 ]
 
 export default function EndingScene() {
@@ -207,7 +215,17 @@ export default function EndingScene() {
             <span style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.2rem)', fontWeight: 900, color: 'var(--text)' }}>FAMOZ</span>
             <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.16em', color: 'var(--ac-magenta)', textTransform: 'uppercase' }}>VISUAL.LAB</span>
           </a>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>&copy; 2025 FAMOZ Co., Ltd. All rights reserved.</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end',
+              gap: '0.35rem 0.9rem', fontSize: '0.74rem', color: 'var(--text-muted)',
+            }}>
+              {BUSINESS.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>&copy; 2025 FAMOZ Co., Ltd. All rights reserved.</span>
+          </div>
         </div>
 
       </div>
