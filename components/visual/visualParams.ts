@@ -101,10 +101,10 @@ export type VisualParams = {
  * 주광원 Smoky Lavender / 보조광 Champagne Amber (famoz-art-direction)
  */
 export const DEFAULT_PARAMS: VisualParams = {
-  imageFieldOpacity: 0.30,
-  densityThreshold: 0.38,
-  densityContrast: 1.35,
-  foregroundDensity: 0.55,
+  imageFieldOpacity: 0.20,
+  densityThreshold: 0.44,
+  densityContrast: 1.48,
+  foregroundDensity: 0.42,
   contentFeather: 0.055,
   contentSuppression: 0.82,
   brightnessSuppression: 0.86,
@@ -112,15 +112,15 @@ export const DEFAULT_PARAMS: VisualParams = {
   coreOcclusion: 1.0,
   deflect: 0.28,
 
-  count: 40_000,
-  microRatio: 0.50,
-  mediumRatio: 0.35,
-  largeRatio: 0.15,
-  sizeScale: 1.0,
-  gaussianSoftness: 1.0,
-  opacity: 0.92,
-  reflectance: 1.05,
-  additiveRatio: 0.12,
+  count: 34_000,
+  microRatio: 0.60,
+  mediumRatio: 0.33,
+  largeRatio: 0.07,
+  sizeScale: 0.82,
+  gaussianSoftness: 1.16,
+  opacity: 0.72,
+  reflectance: 0.82,
+  additiveRatio: 0.07,
 
   baseCurlScale: 0.26,
   baseCurlStrength: 0.040,
@@ -153,8 +153,8 @@ export const DEFAULT_PARAMS: VisualParams = {
 
   /* L1 — 비정형 곡면·통로·음영면 */
   warp: 0.085,
-  fieldLevel: 1.05,
-  corridor: 0.80,
+  fieldLevel: 0.42,
+  corridor: 0.92,
   shadow: 0.85,
   surfaceCol: [0.430, 0.352, 0.485],   // 들어올린 aubergine
   shadowCol:  [0.026, 0.022, 0.036],
@@ -166,14 +166,14 @@ export const DEFAULT_PARAMS: VisualParams = {
   lightZ: 0.85,
   coneWidth: 0.52,
   coneFalloff: 0.44,
-  coneLevel: 1.0,
-  scatterLevel: 0.55,
-  reflectLevel: 1.55,
-  coolLevel: 1.05,
-  sheetBind: 0.92,
+  coneLevel: 0.72,
+  scatterLevel: 0.42,
+  reflectLevel: 0.68,
+  coolLevel: 0.72,
+  sheetBind: 0.56,
   coolCol: [0.471, 0.584, 0.651],      // mist blue #7895A6
 
-  splatAniso: 0.55,
+  splatAniso: 0.72,
   nearRatio: 0.05,
 
   view: 'composite',
