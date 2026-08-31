@@ -44,6 +44,7 @@ export default function VisualSystemCanvas({
   active = true,
   intensity = 1,
   onStats,
+  onUnavailable,
 }: {
   pointer: PointerField
   /** false면 렌더를 멈춘다. Hero를 벗어났을 때 고비용 갱신을 끊는 용도. */
@@ -51,6 +52,8 @@ export default function VisualSystemCanvas({
   /** 0~1. 인트로에서 파티클 밀도와 공간면을 올리는 램프. */
   intensity?: number
   onStats?: (s: VisualStats) => void
+  /** WebGL을 쓸 수 없을 때 호출된다. 호출부가 CSS 폴백으로 전환할 수 있다. */
+  onUnavailable?: () => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -71,10 +74,33 @@ export default function VisualSystemCanvas({
     if (tier === 0) return   // reduced-motion: 정적 배경만 남긴다
 
     const dpr = Math.min(window.devicePixelRatio, tier >= 3 ? 1.5 : 1.0)
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true })
+
+    /* WebGL이 없거나 컨텍스트 생성에 실패하는 환경이 실제로 존재한다.
+       (GPU 차단 정책, 오래된 기기, 드라이버 블랙리스트, 원격 데스크톱 등)
+       여기서 예외가 새어나가면 effect가 던지면서 React 트리 전체가 언마운트되고
+       CSS 유색 배경까지 사라진 흰 화면이 된다. 반드시 안에서 잡는다.
+       실패하면 조용히 물러나고 SectionBackdrop의 CSS 배경만 남는다. */
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true })
+    } catch (err) {
+      console.warn('[VisualSystem] WebGL 사용 불가 — CSS 배경으로 폴백합니다.', err)
+      onUnavailable?.()
+      return
+    }
     renderer.setPixelRatio(dpr)
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setClearColor(0x000000, 0)
+
+    /* 실행 중 컨텍스트를 잃는 경우(탭 장시간 방치, GPU 리셋)도 페이지를
+       죽이지 않고 루프만 멈춘다. */
+    let contextLost = false
+    const onContextLost = (e: Event) => {
+      e.preventDefault()
+      contextLost = true
+      onUnavailable?.()
+    }
+    canvas.addEventListener('webglcontextlost', onContextLost)
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight, 0.1, 60)
@@ -436,6 +462,7 @@ export default function VisualSystemCanvas({
       splatUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
       opticalUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
 
+      if (contextLost) return
       renderer.render(scene, camera)
       const info = renderer.info
       lastStats = {
@@ -452,6 +479,7 @@ export default function VisualSystemCanvas({
 
     return () => {
       cancelAnimationFrame(raf)
+      canvas.removeEventListener('webglcontextlost', onContextLost)
       window.removeEventListener('resize', onResize)
       window.removeEventListener('scroll', syncMask)
       buffers?.main.dispose(); buffers?.optical.dispose()

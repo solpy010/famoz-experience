@@ -12,6 +12,7 @@ import ParallaxSystem from '@/components/ParallaxSystem'
 import SectionBackdrop from '@/components/SectionBackdrop'
 import VisualSystemCanvas, { type VisualStats } from '@/components/visual/VisualSystemCanvas'
 import PerfOverlay from '@/components/visual/PerfOverlay'
+import VisualErrorBoundary from '@/components/visual/VisualErrorBoundary'
 import { PointerField } from '@/components/visual/pointerField'
 
 /**
@@ -79,12 +80,16 @@ export default function Home() {
   return (
     <>
       <SectionBackdrop />
-      <VisualSystemCanvas
-        pointer={pointer}
-        active={heroActive}
-        intensity={intensity}
-        onStats={(s) => { statsRef.current = s }}
-      />
+      {/* 배경은 장식이다. 렌더링에 실패하더라도 본문은 그대로 남아야 한다.
+          실패 시 SectionBackdrop의 CSS 유색 암부만 남는다. */}
+      <VisualErrorBoundary>
+        <VisualSystemCanvas
+          pointer={pointer}
+          active={heroActive}
+          intensity={intensity}
+          onStats={(s) => { statsRef.current = s }}
+        />
+      </VisualErrorBoundary>
       <ParallaxSystem />
 
       {!introComplete && <IntroSequence onEntered={handleEntered} />}
