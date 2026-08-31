@@ -336,6 +336,7 @@ export default function VisualSystemCanvas({
       fps: 0, points: 0, coverage: 0, tier, dpr, frameMs: 0,
       drawCalls: 0, geometries: 0, textures: 0, programs: 0,
     }
+    let wasActive = activeRef.current
     const v3 = (t: THREE.Vector3, s: [number, number, number]) => t.set(s[0], s[1], s[2])
 
     const frame = () => {
@@ -348,9 +349,19 @@ export default function VisualSystemCanvas({
       if (visualEvents.rebuild !== lastRebuild) { lastRebuild = visualEvents.rebuild; rebuild() }
       if (++tick % 30 === 0) syncMask()
 
-      /* Hero를 벗어나면 렌더와 유니폼 갱신을 멈춘다. 씬은 유지해 복귀가 즉시
-         되도록 하되, 프레임 비용은 0에 가깝게 만든다. */
-      if (!activeRef.current) { statsRef.current?.({ ...lastStats, fps: 0, frameMs: 0 }); return }
+      /* Hero를 벗어나는 경계에서 마지막 프레임을 한 번만 투명하게 지운다.
+         clear 없이 조기 반환하면 fixed canvas의 Hero 프리셋이 Works 사진 등
+         뒤 장면 위에 그대로 남는다. 비활성 프레임마다 clear하지는 않는다. */
+      if (!activeRef.current) {
+        if (wasActive && !contextLost) {
+          renderer.setRenderTarget(null)
+          renderer.clear(true, true, true)
+        }
+        wasActive = false
+        statsRef.current?.({ ...lastStats, fps: 0, frameMs: 0 })
+        return
+      }
+      wasActive = true
 
       pointer.update(dt)
       const p = visualParams
