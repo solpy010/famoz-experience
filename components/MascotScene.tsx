@@ -120,21 +120,21 @@ export default function MascotScene() {
 
         {/* ── Intro label ── */}
         <div style={{
-          position: 'absolute', top: 'clamp(2rem, 5vh, 4rem)', left: '50%',
+          position: 'absolute', top: 'clamp(3.5rem, 9vh, 6.5rem)', left: '50%',
           transform: 'translateX(-50%)',
           opacity: isIntro ? Math.min(1, stageSub * 3) : 0,
           transition: `opacity 0.6s ${EASE}`,
           textAlign: 'center', zIndex: 'var(--z-media)', whiteSpace: 'nowrap',
         }}>
           <p className="t-label" style={{ color: 'var(--ac-magenta)', marginBottom: '0.5rem' }}>
-            OUR CHARACTER
+            경험을 만드는 네 가지 관점
           </p>
           <p style={{
             fontFamily: "'A2G','Pretendard',sans-serif",
             fontSize: 'clamp(0.8rem, 1vw, 0.95rem)',
             color: 'var(--text-sub)',
           }}>
-            파모즈의 네 가지 정체성을 소개합니다
+            관람객·기획·체험·기술이 하나의 장면으로 이어집니다
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export default function MascotScene() {
         <div style={{
           position: 'absolute', inset: 0,
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          paddingBottom: isIntro ? '0' : '2vh',
+          padding: `0 var(--gutter) ${isIntro ? '3vh' : '2vh'}`,
           gap: isIntro ? 'clamp(1rem, 3vw, 3rem)' : '0',
           transition: `gap 0.8s ${EASE}, padding-bottom 0.8s ${EASE}`,
         }}>
@@ -157,7 +157,7 @@ export default function MascotScene() {
 
             if (!isIntro) {
               if (isActive) {
-                translateX = '0'
+                translateX = '16vw'
                 scale = 1
                 opacity = 1
               } else {
@@ -178,7 +178,7 @@ export default function MascotScene() {
             }
 
             const charHeight = isIntro
-              ? 'clamp(260px, 45vh, 480px)'
+              ? 'clamp(340px, 58vh, 610px)'
               : isActive ? 'clamp(320px, 62vh, 600px)' : '0'
 
             return (
