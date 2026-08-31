@@ -86,12 +86,15 @@ function brightness(r: number): number {
  * 입자를 L1 시트에 **종속**시켜 배치한다 (지시서 §4).
  * 별가루처럼 화면 전체에 균등 확률로 뿌리지 않는다.
  *
- *   role 0 sheet-bound  65~75%   시트 주변
- *   role 1 corridor     15~20%   통로 방향 흐름
- *   role 2 far          나머지    저밀도 후경
+ *   role 0 sheet-bound  약 44%    끊어진 시트 주변
+ *   role 1 corridor     약 34%    통로 방향 흐름
+ *   role 2 far          약 17%    저밀도 후경
  *   role 3 near         ≤5%      전경 가장자리
+ *
+ * 시트 비중이 과반을 넘으면 입자가 한 덩어리 표면으로 붙어 점막처럼 읽힌다.
+ * Hero에서는 통로와 후경을 함께 살려 면보다 방향과 깊이가 먼저 보이게 한다.
  */
-const ROLE_MIX = [0.72, 0.18, 0.05, 0.05]
+const ROLE_MIX = [0.44, 0.34, 0.17, 0.05]
 
 /** 월드 좌표 → 화면비 보정 화면 좌표. 셰이더의 p와 같은 공간. */
 function toScreen(x: number, y: number, z: number, cam: CamInfo) {
