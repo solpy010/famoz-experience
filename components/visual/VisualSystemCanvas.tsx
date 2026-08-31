@@ -81,7 +81,7 @@ export default function VisualSystemCanvas({
        실패하면 조용히 물러나고 SectionBackdrop의 CSS 배경만 남는다. */
     let renderer: THREE.WebGLRenderer
     try {
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true })
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'high-performance' })
     } catch (err) {
       console.warn('[VisualSystem] WebGL 사용 불가 — CSS 배경으로 폴백합니다.', err)
       onUnavailable?.()

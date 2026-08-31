@@ -39,6 +39,14 @@
 - The old 2D distortion canvas performed an O(600²) constellation-neighbor loop and created up to 120 radial gradients every frame. It now updates 420 desktop / 210 mobile reusable dots in a single O(n) loop, caps DPR at 1, and mounts only within 12% of the viewport.
 - Hero particle visibility loss came from stacked sheet binding, far-depth attenuation, density attenuation, and content masks after the particles had already been reduced in size. These gates were relaxed while point ceilings stayed at 2.1 / 5.2 / 10 px to improve visibility without coarse or glaring dots.
 
+## Palette correction and spatial interaction pass
+
+- Scene identity is preserved rather than normalized to blue: Reactive and Value return to clean coral/orange/gold, Public Value returns to bright cyan/gold, and Ending returns to luminous warm gold over cool aubergine shadows. Brown-gray contamination remains removed.
+- The Hero screenshot showed particles existed but were below a useful visibility threshold. Final alpha, density floor, and micro-point minimum were raised while the largest point cap remained 10 px.
+- Particle count changes from 30,000 to 18,000, but expensive per-particle work is removed: the main shader no longer evaluates 3D curl noise, three sheet surfaces, a sheet corridor, or four mask-gradient samples.
+- Pointer wake changes from five shader segments to four. The remaining displacement is depth-scaled so near particles move earlier/farther and far particles respond later/less, making parallax depth—not cursor repulsion—the dominant interaction cue.
+- The particle shader now uses an analytical low-frequency flow and two mask reads. This preserves drift and text safety while materially lowering vertex cost.
+
 ## Automated checks
 
 - `npm run build`: passed.

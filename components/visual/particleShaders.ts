@@ -1,5 +1,4 @@
 import { NOISE_GLSL } from '../webgl/shaders'
-import { SHEETS_GLSL, CORRIDOR_GLSL } from './sheets'
 
 /**
  * /visual-lab GLSL.
@@ -14,7 +13,7 @@ import { SHEETS_GLSL, CORRIDOR_GLSL } from './sheets'
  * 클래스별 값은 배열 대신 step/mix 혼합으로 고른다.
  */
 
-export const MAX_STROKE = 6
+export const MAX_STROKE = 5
 export const MAX_RECTS = 6
 
 /* ── 포인터: 이동 경로에 힘 주입 (문서 §7) ─────────────────── */
@@ -83,13 +82,6 @@ const MASK_GLSL = /* glsl */`
   float coreMask(vec2 suv){ return texture2D(uCoreTex, vec2(suv.x, 1.0 - suv.y)).a; }
   float softMask(vec2 suv){ return texture2D(uSoftTex, vec2(suv.x, 1.0 - suv.y)).a; }
 
-  /* soft 필드의 기울기. 흐름을 콘텐츠 바깥으로 갈라 흐르게 하는 데 쓴다. */
-  vec2 softGradient(vec2 suv){
-    vec2 e = uMaskTexel * 2.0;
-    float l = softMask(suv - vec2(e.x, 0.0)), r = softMask(suv + vec2(e.x, 0.0));
-    float d = softMask(suv - vec2(0.0, e.y)), u = softMask(suv + vec2(0.0, e.y));
-    return vec2(r - l, u - d);
-  }
 `
 
 /* ── 외부 광원 산란 (famoz-art-direction L2 / 문서 §9) ──────── */
@@ -162,9 +154,6 @@ export const splatVert = /* glsl */`
   varying vec3  vColor;
   varying float vAlpha, vSoft, vAngle, vAniso;
 
-  ${NOISE_GLSL}
-  ${SHEETS_GLSL}
-  ${CORRIDOR_GLSL}
   ${STROKE_GLSL}
   ${MASK_GLSL}
   ${LIGHT_GLSL}
@@ -182,27 +171,16 @@ export const splatVert = /* glsl */`
     float tau   = isMicro*uTauMicro   + isMedium*uTauMedium   + isLarge*uTauLarge;
 
     /* 기본 대기 흐름 — 포인터가 있어도 덮어쓰지 않는다 (§11) */
-    float t = uTime * 0.05;
-    vec3 baseFlow = curlNoise(origin * uBaseCurlScale + vec3(t*0.9, t*0.7, t*0.5))
-                  * uBaseCurlStrength;
-    vec3 pos = origin + baseFlow * (0.4 + depth * 0.8);
-
-    /* 변위 전 화면좌표에서 마스크를 먼저 읽는다 */
-    vec4 clip0 = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    vec2 suv0  = clip0.xy / max(abs(clip0.w), 1e-4) * 0.5 + 0.5;
-    float soft0 = softMask(suv0);
-
-    /* C. Ambient Field — 완충 밖에서만 정상적인 포인터 상호작용 */
-    float gate = 1.0 - uPointerSuppress * soft0;
+    float t = uTime * (0.075 + depth * 0.045);
+    vec3 baseFlow = vec3(
+      sin(origin.y * 1.7 + origin.z * .8 + t + aSeed * 6.283),
+      cos(origin.x * 1.25 - origin.z * .55 + t * .83 + aSeed * 4.7),
+      sin(origin.x * .7 + origin.y * .6 + t * .45)
+    ) * uBaseCurlStrength;
+    vec3 pos = origin + baseFlow * (0.55 + depth * 1.05);
 
     float exposure;
-    pos.xy += strokeForce(pos.xy, lag, fsc * gate, tau, exposure);
-
-    /* 흐름이 콘텐츠를 관통하지 않고 주변으로 갈라져 흐르게 한다.
-       soft 필드의 기울기 반대 방향으로 밀어낸다. */
-    vec2 g = softGradient(suv0);
-    float gl = length(g);
-    pos.xy -= (g / max(gl, 1e-4)) * min(gl * 6.0, 1.0) * soft0 * uDeflect;
+    pos.xy += strokeForce(pos.xy, lag, fsc, tau, exposure) * (0.55 + depth * 0.85);
 
     vec4 mv   = modelViewMatrix * vec4(pos, 1.0);
     vec4 clip = projectionMatrix * mv;
@@ -233,28 +211,6 @@ export const splatVert = /* glsl */`
     /* mid는 광원에 닿은 일부만 선명해진다 */
     color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
 
-    /* ── 시트 종속 가시성 (지시서 §4) ─────────────────────────
-       particleVisibility = sheetProximity * lightExposure
-                          * depthAttenuation * contentMask
-       시트와 광원에서 먼 입자는 거의 보이지 않는다. */
-    vec2 sp = vec2((suv.x - 0.5) * uAspect, suv.y - 0.5);
-    float prox = 0.0, tanAngle = 0.0;
-    for (int i = 0; i < SHEET_COUNT; i++){
-      SheetDef sh = getSheet(i);
-      float c = sheetCore(sh, sp);
-      if (c > prox) {
-        prox = c;
-        vec2 tg = sheetTangent(sh, sp.x);
-        tanAngle = atan(tg.y, tg.x);
-      }
-    }
-    float corrN = corridorField(sp);
-    /* 통로 입자는 시트가 없어도 흐름을 보여줘야 하므로 별도로 살린다 */
-    float bindField = max(prox, corrN * step(0.5, aRole) * step(aRole, 1.5) * 0.85);
-    float lightExposure = clamp(0.25 + lit * 1.9, 0.0, 1.4);
-    float depthAtten = 0.40 + depth * 0.60;
-    float visibility = mix(1.0, bindField * lightExposure * depthAtten, uSheetBind);
-
     /* B. Soft Safety Field — 밝은 입자일수록 강하게 감쇠한다.
        어두운 입자는 남겨 검은 구멍이 생기지 않게 한다. */
     float brightW = smoothstep(0.22, 0.85, aBright);
@@ -264,7 +220,6 @@ export const splatVert = /* glsl */`
        영역까지 같이 올라와 화면 전체가 균일한 점묘가 된다. */
     float a = uOpacity * (0.34 + aBright * 0.66)
             * (0.42 + aDensity * aDensity * 0.78) * (0.58 + depth * 0.42)
-            * clamp(visibility, 0.0, 1.6)
             /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
             * (1.0 - isFar * 0.24);
     a *= 1.0 - uContentSuppress * brightW * soft;
@@ -281,17 +236,15 @@ export const splatVert = /* glsl */`
     /* ── 형태 ──
        원형만 반복하지 않는다. mid의 절반은 흐름 방향으로 늘어난 타원형이라
        흐름 방향을 판독할 수 있다 (지시서 §5). */
-    /* 시트 위 입자는 면의 접선 방향으로, 나머지는 흐름 방향으로 정렬한다 */
-    float onSheet = smoothstep(0.25, 0.6, prox);
-    vAngle = mix(atan(baseFlow.y, baseFlow.x + 1e-5), tanAngle, onSheet);
-    vAniso = 1.0 + uSplatAniso * max(isMid, onSheet * 0.8) * step(aSeed, 0.62)
+    vAngle = atan(baseFlow.y, baseFlow.x + 1e-5);
+    vAniso = 1.0 + uSplatAniso * isMid * step(aSeed, 0.62)
                  * (0.5 + aDensity * 0.5);
 
     float baseSize = isMicro * 1.35 + isMedium * 3.8 + isLarge * 10.0;
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
              * (0.45 + depth * 0.75) * (0.72 + lit * 1.1);
-    float lo = isMicro * 0.82 + isMedium * 2.0 + isLarge * 5.0;
-    float hi = isMicro * 2.1 + isMedium * 5.2 + isLarge * 10.0;
+    float lo = isMicro * 1.0 + isMedium * 2.2 + isLarge * 5.0;
+    float hi = isMicro * 2.3 + isMedium * 5.4 + isLarge * 10.0;
 
     /* large는 점이 아니라 흐릿한 공간면으로 읽혀야 한다 (지시서 §4).
        흐림은 falloff를 눕혀서가 아니라 **크기**로 얻는다.

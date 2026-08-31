@@ -32,7 +32,7 @@ export default function PublicValue() {
         }}
       />
 
-      <DistortionCanvas color1="#65CFFF" color2="#8D82FF" mouseForce={1.1} opacity={0.45} />
+      <DistortionCanvas color1="#69E2FF" color2="#FFD46F" mouseForce={0.82} opacity={0.48} />
 
       {/* Mid layer: network light nodes expanding */}
       <div

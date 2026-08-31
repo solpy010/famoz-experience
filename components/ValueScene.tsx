@@ -4,10 +4,10 @@ import DistortionCanvas from './DistortionCanvas'
 import { subscribeScroll } from './scrollBus'
 
 const VALUE_ITEMS = [
-  { text: '이해하기 쉬워집니다', sub: '복잡한 정보가 감각으로 전달됩니다', color: '#8FD8FF' },
-  { text: '직접 참여하게 됩니다', sub: '관람객의 행동이 경험의 주체가 됩니다', color: '#A98CFF' },
-  { text: '공간과 연결됩니다', sub: '장소가 관계로 기억됩니다', color: '#66E8C1' },
-  { text: '오래 기억하게 됩니다', sub: '경험은 의미로 전환됩니다', color: '#D6C4FF' },
+  { text: '이해하기 쉬워집니다', sub: '복잡한 정보가 감각으로 전달됩니다', color: '#FFAD66' },
+  { text: '직접 참여하게 됩니다', sub: '관람객의 행동이 경험의 주체가 됩니다', color: '#FFD06F' },
+  { text: '공간과 연결됩니다', sub: '장소가 관계로 기억됩니다', color: '#FF8B72' },
+  { text: '오래 기억하게 됩니다', sub: '경험은 의미로 전환됩니다', color: '#D69CFF' },
 ]
 
 const THRESHOLDS = [0.18, 0.38, 0.58, 0.78]
@@ -41,18 +41,18 @@ export default function ValueScene() {
         {/* Ambient gradient */}
         <div aria-hidden style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 66% 58% at 22% 42%, rgba(49,77,185,.20) 0%, rgba(93,65,186,.08) 48%, transparent 76%)',
+          background: 'radial-gradient(ellipse 66% 58% at 22% 42%, rgba(255,108,61,.22) 0%, rgba(255,190,72,.10) 48%, transparent 76%)',
         }} />
 
         {/* Canvas distortion — warm orange/magenta */}
-        <DistortionCanvas color1="#648EFF" color2="#AE86FF" mouseForce={1.05} opacity={0.48} />
+        <DistortionCanvas color1="#FF8A62" color2="#FFD06F" mouseForce={0.82} opacity={0.52} />
 
         <div className="shell" data-guard style={{ position: 'relative', zIndex: 'var(--z-content)', width: '100%' }}>
           <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 'clamp(2.5rem, 5vh, 4rem)' }}>
 
             {/* ── Headline ── */}
             <div data-reveal>
-              <p className="t-label" style={{ color: '#8FD8FF', marginBottom: '1.25rem' }}>VALUE</p>
+              <p className="t-label" style={{ color: '#FFAD66', marginBottom: '1.25rem' }}>VALUE</p>
               <h2 className="t-scene" style={{ maxWidth: '24ch' }}>
                 공간은 사람을 움직이고
                 <br />
@@ -71,7 +71,7 @@ export default function ValueScene() {
                 <div style={{
                   position: 'absolute', top: 0, left: 0, right: 0,
                   height: `${beamFill * 100}%`,
-                  background: 'linear-gradient(to bottom, #8FD8FF 0%, #788BFF 50%, #B895FF 100%)',
+                  background: 'linear-gradient(to bottom, #FFD06F 0%, #FF9A62 52%, #D69CFF 100%)',
                   transition: 'height 0.25s cubic-bezier(0.4,0,0.2,1)',
                 }} />
                 {/* Beam glow tip */}

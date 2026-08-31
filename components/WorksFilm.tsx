@@ -42,7 +42,7 @@ const PROJECTS: Project[] = [
     title: 'SPORTS MONSTER',
     desc: '방문객의 움직임을 실시간 콘텐츠와 연결. 동작과 반응이 만드는 반복 가능한 체험 공간.',
     tags: ['인터랙티브', '게임 연출', '체험 설계'],
-    accent: '#8D9FFF',
+    accent: '#FF9A62',
     images: ['/works/sports-01.png', '/works/sports-02.png', '/works/sports-03.png', '/works/sports-04.png'],
     mobilePosition: 'center 30%',  // 핵심 액션 화면 상단부
   },

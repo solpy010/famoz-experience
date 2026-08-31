@@ -40,13 +40,13 @@ const SECTION_BG: Record<string, string> = {
     'radial-gradient(ellipse 44% 74% at 88% 56%, #062D58 0%, transparent 66%)',
     'radial-gradient(ellipse 130% 104% at 50% 52%, #0B1733 0%, #070E23 68%, #050A18 100%)',
   ].join(', '),
-  whatA:       field('#0B4450', '#132F63', L0.indigo),
-  whatB:       field('#173A72', '#30256F', L0.indigo),
-  whatC:       field('#30236E', '#10396B', L0.indigo),
-  value:       field('#222A72', '#173B6A', L0.graphite),
-  publicValue: field('#0B4054', '#292667', L0.indigo),
+  whatA:       field('#0B4450', '#123A56', L0.indigo),
+  whatB:       field('#5A2528', '#4C3721', L0.indigo),
+  whatC:       field('#49266B', '#123C62', L0.indigo),
+  value:       field('#5A252D', '#49351F', L0.graphite),
+  publicValue: field('#0B4054', '#4A3B20', L0.indigo),
   works:       field('#132B52', '#28215F', L0.indigo),
-  ending:      field('#1B2459', '#143C65', L0.indigo),
+  ending:      field('#4B2635', '#4A3820', L0.indigo),
 }
 
 

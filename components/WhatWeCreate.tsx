@@ -6,8 +6,8 @@ import { subscribeScroll } from './scrollBus'
 
 const STAGES = [
   { accent: '#66e8c1', label: 'WHAT WE CREATE · 01', bg: 'radial-gradient(ellipse 72% 78% at 28% 48%, rgba(28,160,144,.20) 0%, rgba(15,75,102,.10) 42%, transparent 76%)', kw: 'Immersive', kwColor: 'rgba(90,232,205,.065)', lines: ['이야기가', '장면으로 펼쳐지는', '몰입형 미디어 공간.'], highlight: 1, body: '다면 미디어가 관람객의 이동 경로에 맞춰\n순차적으로 활성화됩니다.' },
-  { accent: '#8ebcff', label: 'WHAT WE CREATE · 02', bg: 'radial-gradient(ellipse 68% 74% at 62% 44%, rgba(67,118,246,.22) 0%, rgba(111,88,232,.10) 46%, transparent 77%)', kw: 'Reactive', kwColor: 'rgba(112,155,255,.065)', lines: ['움직임과 선택에', '반응하는', '인터랙티브 경험.'], highlight: 1, body: '방문객의 행동이 장면을 결정합니다.\n똑같은 경험은 없습니다.' },
-  { accent: '#c4a4ff', label: 'WHAT WE CREATE · 03', bg: 'radial-gradient(ellipse 70% 76% at 48% 56%, rgba(128,84,238,.22) 0%, rgba(31,130,220,.10) 48%, transparent 78%)', kw: 'Spatial', kwColor: 'rgba(188,155,255,.065)', lines: ['위치와 상황을 이해해', '도움을 주는', 'AI 공간 서비스.'], highlight: 1, body: '필요한 순간, 공간이 먼저 알아채고\n적절한 안내를 건네줍니다.' },
+  { accent: '#ffad66', label: 'WHAT WE CREATE · 02', bg: 'radial-gradient(ellipse 68% 74% at 62% 44%, rgba(255,112,62,.24) 0%, rgba(255,190,83,.12) 44%, transparent 76%)', kw: 'Reactive', kwColor: 'rgba(255,157,91,.075)', lines: ['움직임과 선택에', '반응하는', '인터랙티브 경험.'], highlight: 1, body: '방문객의 행동이 장면을 결정합니다.\n똑같은 경험은 없습니다.' },
+  { accent: '#d69cff', label: 'WHAT WE CREATE · 03', bg: 'radial-gradient(ellipse 70% 76% at 48% 56%, rgba(190,91,255,.23) 0%, rgba(46,190,255,.12) 48%, transparent 78%)', kw: 'Spatial', kwColor: 'rgba(214,156,255,.075)', lines: ['위치와 상황을 이해해', '도움을 주는', 'AI 공간 서비스.'], highlight: 1, body: '필요한 순간, 공간이 먼저 알아채고\n적절한 안내를 건네줍니다.' },
 ] as const
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value))
@@ -49,7 +49,7 @@ export default function WhatWeCreate() {
             </div>
           )
         })}
-        <DistortionCanvas color1="#5f8dff" color2="#a27cff" mouseForce={1.15} opacity={0.52} />
+        <DistortionCanvas color1="#6edfff" color2="#d69cff" mouseForce={0.85} opacity={0.55} />
         <div aria-hidden style={{ position: 'absolute', right: 'clamp(20px,4vw,44px)', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 12, zIndex: 5 }}>
           {STAGES.map((stage, index) => <span key={stage.label} style={{ width: 5, height: 5, borderRadius: '50%', background: index === nearest ? stage.accent : 'rgba(170,190,225,.28)', transform: index === nearest ? 'scale(1.5)' : 'scale(1)', transition: 'background .45s ease, transform .45s ease' }} />)}
         </div>

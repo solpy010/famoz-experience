@@ -15,7 +15,7 @@ import { visualParams } from './visualParams'
  * 투영을 다시 하지 않아도 된다.
  */
 
-export const MAX_STROKE = 6           // 점 6개 = 선분 5개. 관성은 유지하고 shader 반복 비용은 낮춘다.
+export const MAX_STROKE = 5           // 점 5개 = 선분 4개. 약 0.7초의 wake를 유지한다.
 const HISTORY_SECONDS = 1.2           // delayed() 조회 범위
 const HISTORY_CAPACITY = 96
 
