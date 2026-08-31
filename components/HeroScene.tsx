@@ -31,6 +31,11 @@ export default function HeroScene({ introComplete }: Props) {
         overflow: 'hidden',
       }}
     >
+      <div className="hero-light-field" aria-hidden="true">
+        <span className="hero-light hero-light--blue" />
+        <span className="hero-light hero-light--violet" />
+        <span className="hero-light hero-light--cyan" />
+      </div>
       {/* Layer 3 — Near: architectural accent lines (moves 14px with pointer) */}
       <div
         aria-hidden="true"
@@ -68,7 +73,7 @@ export default function HeroScene({ introComplete }: Props) {
 
       {/* Copy */}
       <div className="shell" data-guard>
-        <div style={{ maxWidth: 'min(100%, 900px)' }}>
+        <div className="hero-copy-frame">
           <p
             data-reveal
             className="t-label"

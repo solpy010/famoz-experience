@@ -223,10 +223,13 @@ export const splatVert = /* glsl */`
     float lit;
     vec3  color  = shadeParticle(pos, depth, aBright * reveal, lit);
 
-    /* far: 낮은 대비·낮은 채도 / mid: 가장 또렷 / near: 크고 흐림 */
+    /* 깊이마다 독립된 색온도를 갖게 해 전체가 보라 안개로 섞이지 않게 한다. */
     float luma2 = dot(color, vec3(0.2126, 0.7152, 0.0722));
-    color = mix(color, vec3(luma2), isFar * 0.55);
-    color *= isFar * 0.52 + isMid * 1.15 + isNear * 0.70;
+    color = mix(color, vec3(luma2), isFar * 0.10);
+    color = mix(color, vec3(0.16, 0.40, 0.95), isFar * 0.28);
+    color = mix(color, vec3(0.56, 0.38, 1.00), isMid * smoothstep(0.18, 0.92, lit) * 0.24);
+    color = mix(color, vec3(0.48, 0.92, 1.00), isNear * 0.32);
+    color *= isFar * 0.70 + isMid * 1.18 + isNear * 0.88;
     /* mid는 광원에 닿은 일부만 선명해진다 */
     color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
 
@@ -263,7 +266,7 @@ export const splatVert = /* glsl */`
             * (0.28 + aDensity * aDensity * 0.95) * (0.50 + depth * 0.50)
             * clamp(visibility, 0.0, 1.6)
             /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
-            * (1.0 - isFar * 0.55);
+            * (1.0 - isFar * 0.32);
     a *= 1.0 - uContentSuppress * brightW * soft;
 
     /* A. Core Occlusion — 실루엣 내부는 입자가 보이지 않는다 */
@@ -284,19 +287,19 @@ export const splatVert = /* glsl */`
     vAniso = 1.0 + uSplatAniso * max(isMid, onSheet * 0.8) * step(aSeed, 0.62)
                  * (0.5 + aDensity * 0.5);
 
-    float baseSize = isMicro * 1.7 + isMedium * 6.0 + isLarge * 30.0;
+    float baseSize = isMicro * 1.35 + isMedium * 3.8 + isLarge * 10.0;
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
              * (0.45 + depth * 0.75) * (0.72 + lit * 1.1);
-    float lo = isMicro * 0.6 + isMedium * 3.0 + isLarge * 16.0;
-    float hi = isMicro * 2.6 + isMedium * 7.5 + isLarge * 16.0;
+    float lo = isMicro * 0.55 + isMedium * 1.8 + isLarge * 5.0;
+    float hi = isMicro * 1.9 + isMedium * 5.2 + isLarge * 10.0;
 
     /* large는 점이 아니라 흐릿한 공간면으로 읽혀야 한다 (지시서 §4).
        흐림은 falloff를 눕혀서가 아니라 **크기**로 얻는다.
        프래그먼트는 exp(-dot(uv,uv)*4*vSoft)이고 스프라이트 모서리의
        dot(uv,uv)는 0.5이므로, vSoft가 2.0 아래로 내려가면 모서리 알파가
        남아 입자가 정사각형으로 보인다. 하한 2.0을 지킬 것. */
-    vSoft = isMicro * 4.2 + isMedium * 2.4 + isLarge * 2.0;
-    a *= isMicro * 1.0 + isMedium * 0.85 + isLarge * 0.55;
+    vSoft = isMicro * 5.0 + isMedium * 3.2 + isLarge * 2.8;
+    a *= isMicro * 1.0 + isMedium * 0.76 + isLarge * 0.38;
 
     /* ── 디버그 뷰 ── */
     /* VIEW_INDEX와 반드시 같이 움직여야 한다: masks = 8, velocity = 9, dist = 10 */

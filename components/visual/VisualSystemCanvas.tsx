@@ -450,7 +450,7 @@ export default function VisualSystemCanvas({
       const v = p.view
       const showSpace = v === 'l1' || v === 'l2' || v === 'l1l2'
                      || v === 'cone' || v === 'reflect'
-      const showFog   = tier >= 2 && (v === 'composite' || v === 'velocity')
+      const showFog   = tier >= 2 && v === 'velocity'
       const layerOnly = LAYER_FILTER[v]
       const showSplat = v === 'composite' || v === 'masks' || v === 'velocity'
                      || v === 'dist' || layerOnly !== undefined

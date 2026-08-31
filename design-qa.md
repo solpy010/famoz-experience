@@ -21,6 +21,14 @@
 - Four continuous, overlapping scenes now use optimized project photography, a left copy safety zone, large right-side mascots, and staged background → mascot → title timing.
 - Four source images were converted from 11.5 MB of PNG files to 460 KB of WebP files.
 
+## Hero reference pass
+
+- Direct comparison against the supplied Shopify capture showed that the remaining gap was structural: the reference separates blue, violet, cyan, and white by depth, while the current capture collapsed warm ivory, gray-purple, and brown-black into one low-contrast field.
+- Hero background is now a clean blue-black base with three independently positioned blue, violet, and cyan light fields. These are static/composited CSS layers rather than another WebGL volumetric pass.
+- Composite fog is disabled, leaving two particle draw calls. Particle count rises from 24,000 to 30,000 while micro-particle share rises to 82%; this increases perceived density without restoring large overdraw-heavy splats.
+- Particle maximums are now 1.9 px micro, 5.2 px medium, and 10 px large. Depth layers receive separately biased blue, violet, and cyan lighting instead of gray desaturation.
+- Hero title scale changes from an 8.5vw/10rem ceiling to 6.15vw/7.25rem, preserving a title-page hierarchy while reopening the right and upper visual field.
+
 ## Automated checks
 
 - `npm run build`: passed.

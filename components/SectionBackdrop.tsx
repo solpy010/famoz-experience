@@ -35,10 +35,10 @@ const field = (a: string, b: string, base: string) => [
 const SECTION_BG: Record<string, string> = {
   // /visual-lab에서 검증한 Hero L0 (graphite plum 기저 + aubergine)
   hero: [
-    'radial-gradient(ellipse 82% 70% at 28% 26%, #24172D 0%, transparent 66%)',
-    'radial-gradient(ellipse 58% 54% at 80% 76%, #1E1A18 0%, transparent 58%)',
-    'radial-gradient(ellipse 96% 50% at 56% 54%, #171C22 0%, transparent 62%)',
-    'radial-gradient(ellipse 130% 98% at 48% 46%, #13101A 0%, #0D0B12 74%, #08070C 100%)',
+    'radial-gradient(ellipse 78% 72% at 12% 72%, #183963 0%, transparent 62%)',
+    'radial-gradient(ellipse 54% 68% at 57% 38%, #281D63 0%, transparent 64%)',
+    'radial-gradient(ellipse 44% 74% at 88% 56%, #062D58 0%, transparent 66%)',
+    'radial-gradient(ellipse 130% 104% at 50% 52%, #0B1733 0%, #070E23 68%, #050A18 100%)',
   ].join(', '),
   whatA:       field(L0.graphite, L0.petrol,   L0.indigo),    // 이야기 공간
   whatB:       field(L0.plum,     L0.charcoal, L0.charcoal),  // 상호작용 공간
