@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState } from 'react'
 import DistortionCanvas from './DistortionCanvas'
+import { subscribeScroll } from './scrollBus'
 
 const EASE = 'cubic-bezier(0.4,0,0.2,1)'
 
@@ -103,9 +104,7 @@ export default function WhatWeCreate() {
       setSub(stageFloat - idx)
       setStageIdx(idx)
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
+    return subscribeScroll(onScroll)
   }, [])
 
   const s = STAGES[stageIdx]

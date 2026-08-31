@@ -15,8 +15,9 @@ import { visualParams } from './visualParams'
  * 투영을 다시 하지 않아도 된다.
  */
 
-export const MAX_STROKE = 10          // 점 10개 = 선분 9개
+export const MAX_STROKE = 6           // 점 6개 = 선분 5개. 관성은 유지하고 shader 반복 비용은 낮춘다.
 const HISTORY_SECONDS = 1.2           // delayed() 조회 범위
+const HISTORY_CAPACITY = 96
 
 type Sample = { t: number; vx: number; vy: number; speed: number }
 
@@ -38,7 +39,9 @@ export class PointerField {
   private halfH = 1
   private aspect = 1
   private ndc = new THREE.Vector2()
-  private history: Sample[] = []
+  private history: Sample[] = Array.from({ length: HISTORY_CAPACITY }, () => ({ t: -99, vx: 0, vy: 0, speed: 0 }))
+  private historyHead = 0
+  private historyCount = 0
   private clock = 0
   private seeded = false
   private lastMoveT = -99
@@ -102,8 +105,13 @@ export class PointerField {
     this.idleTime = inputActive ? 0 : this.idleTime + dt
     this.activity += ((inputActive ? 1 : 0) - this.activity) * Math.min(1, dt * 3)
 
-    this.history.push({ t: this.clock, vx: this.smoothVelocity.x, vy: this.smoothVelocity.y, speed })
-    while (this.history.length && this.clock - this.history[0].t > HISTORY_SECONDS) this.history.shift()
+    const sample = this.history[this.historyHead]
+    sample.t = this.clock
+    sample.vx = this.smoothVelocity.x
+    sample.vy = this.smoothVelocity.y
+    sample.speed = speed
+    this.historyHead = (this.historyHead + 1) % HISTORY_CAPACITY
+    this.historyCount = Math.min(this.historyCount + 1, HISTORY_CAPACITY)
 
     /* 스트로크 히스토리.
        거리 조건만 쓰면 매 프레임 점이 밀려나 10칸 버퍼가 0.5초 만에 소진되고
@@ -125,9 +133,11 @@ export class PointerField {
   /** lag초 전의 속도 샘플. DOM 레이어(광원 등)의 지연 반응에 쓴다. */
   delayed(lag: number): DelayedSample {
     const want = this.clock - lag
-    for (let i = this.history.length - 1; i >= 0; i--) {
-      if (this.history[i].t <= want) {
-        const s = this.history[i]
+    for (let offset = 1; offset <= this.historyCount; offset++) {
+      const index = (this.historyHead - offset + HISTORY_CAPACITY) % HISTORY_CAPACITY
+      const s = this.history[index]
+      if (this.clock - s.t > HISTORY_SECONDS) break
+      if (s.t <= want) {
         return { vx: s.vx, vy: s.vy, speed: s.speed }
       }
     }

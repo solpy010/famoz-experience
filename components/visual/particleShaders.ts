@@ -14,7 +14,7 @@ import { SHEETS_GLSL, CORRIDOR_GLSL } from './sheets'
  * 클래스별 값은 배열 대신 step/mix 혼합으로 고른다.
  */
 
-export const MAX_STROKE = 10
+export const MAX_STROKE = 6
 export const MAX_RECTS = 6
 
 /* ── 포인터: 이동 경로에 힘 주입 (문서 §7) ─────────────────── */
@@ -288,7 +288,7 @@ export const splatVert = /* glsl */`
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
              * (0.45 + depth * 0.75) * (0.72 + lit * 1.1);
     float lo = isMicro * 0.6 + isMedium * 3.0 + isLarge * 16.0;
-    float hi = isMicro * 3.0 + isMedium * 14.0 + isLarge * 64.0;
+    float hi = isMicro * 2.6 + isMedium * 7.5 + isLarge * 16.0;
 
     /* large는 점이 아니라 흐릿한 공간면으로 읽혀야 한다 (지시서 §4).
        흐림은 falloff를 눕혀서가 아니라 **크기**로 얻는다.

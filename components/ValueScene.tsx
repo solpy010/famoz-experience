@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import DistortionCanvas from './DistortionCanvas'
+import { subscribeScroll } from './scrollBus'
 
 const VALUE_ITEMS = [
   { text: '이해하기 쉬워집니다', sub: '복잡한 정보가 감각으로 전달됩니다', color: '#E8955A' },
@@ -24,9 +25,7 @@ export default function ValueScene() {
       const scrolled = Math.max(0, -rect.top)
       setProgress(Math.min(1, scrolled / total))
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
+    return subscribeScroll(onScroll)
   }, [])
 
   const beamFill = Math.max(0, Math.min(1, (progress - 0.04) / 0.88))

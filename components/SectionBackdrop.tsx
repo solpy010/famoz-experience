@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
+import { subscribeScroll } from './scrollBus'
 
 /**
  * L0 Chromatic Backdrop — CSS 전용. Canvas도 RAF도 쓰지 않는다.
@@ -86,11 +87,10 @@ export default function SectionBackdrop() {
       }
     }
 
-    detect()
-    window.addEventListener('scroll', detect, { passive: true })
+    const unsubscribe = subscribeScroll(detect)
     window.addEventListener('resize', detect)
     return () => {
-      window.removeEventListener('scroll', detect)
+      unsubscribe()
       window.removeEventListener('resize', detect)
     }
   }, [])

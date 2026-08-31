@@ -112,42 +112,42 @@ export const DEFAULT_PARAMS: VisualParams = {
   coreOcclusion: 1.0,
   deflect: 0.28,
 
-  count: 34_000,
-  microRatio: 0.60,
-  mediumRatio: 0.33,
-  largeRatio: 0.07,
-  sizeScale: 0.82,
-  gaussianSoftness: 1.16,
-  opacity: 0.72,
-  reflectance: 0.82,
-  additiveRatio: 0.07,
+  count: 24_000,
+  microRatio: 0.76,
+  mediumRatio: 0.21,
+  largeRatio: 0.03,
+  sizeScale: 0.62,
+  gaussianSoftness: 1.04,
+  opacity: 0.66,
+  reflectance: 0.68,
+  additiveRatio: 0.04,
 
   baseCurlScale: 0.26,
   baseCurlStrength: 0.040,
-  pointerSmoothing: 0.035,
-  velocitySmoothing: 0.12,
-  pointerRadius: 0.16,
-  pointerForce: 0.55,
-  velocityDamping: 0.975,
-  wakeTau: 2.2,
-  maxDisplacement: 0.42,
-  swirl: 0.38,
+  pointerSmoothing: 0.028,
+  velocitySmoothing: 0.09,
+  pointerRadius: 0.13,
+  pointerForce: 0.38,
+  velocityDamping: 0.968,
+  wakeTau: 1.7,
+  maxDisplacement: 0.25,
+  swirl: 0.22,
   maxPointerSpeed: 0.045,
 
   /* 팔레트는 지시서 §3 Hero 기본값에서만 고른다.
      순수 red/green/magenta/cyan 금지, 두 고채도 색의 동일 면적 경쟁 금지. */
   mainLight:       [-1.75,  1.05, -2.5],
-  mainLightColor:  [0.557, 0.478, 0.659],  // smoky lavender  #8E7AA8
+  mainLightColor:  [0.565, 0.635, 0.900],  // clear mist blue
   sideLight:       [ 2.05, -0.50, -1.0],
-  sideLightColor:  [0.714, 0.506, 0.353],  // dusty amber     #B6815A
-  sideLevel: 0.42,                          // 주광원 대비 낮춰 강조 10% 이하로
-  ambient:         [0.105, 0.098, 0.125],
+  sideLightColor:  [0.760, 0.690, 0.900],  // pale lavender
+  sideLevel: 0.20,
+  ambient:         [0.026, 0.040, 0.082],
   /* 입자의 기본색은 저채도. 빛에 닿을 때만 lavender/amber가 반사색으로 뜬다. */
-  albedoNear:      [0.63, 0.605, 0.585],   // warm gray
-  albedoFar:       [0.485, 0.520, 0.575],  // muted blue-gray
-  fogAbsorb: 0.55,
-  fogScattering: 0.62,
-  fogDensity: 0.62,
+  albedoNear:      [0.765, 0.800, 0.920],
+  albedoFar:       [0.360, 0.490, 0.710],
+  fogAbsorb: 0.30,
+  fogScattering: 0.24,
+  fogDensity: 0.24,
   exposureResponse: 0.55,
   scatterAnisotropy: 0.58,
 
@@ -156,8 +156,8 @@ export const DEFAULT_PARAMS: VisualParams = {
   fieldLevel: 0.42,
   corridor: 0.92,
   shadow: 0.85,
-  surfaceCol: [0.430, 0.352, 0.485],   // 들어올린 aubergine
-  shadowCol:  [0.026, 0.022, 0.036],
+  surfaceCol: [0.160, 0.205, 0.390],
+  shadowCol:  [0.010, 0.018, 0.042],
 
   /* L2 — 좌상단 바깥에서 유입해 우중앙으로 진행 */
   lightOrigin: [-1.15,  0.55],
@@ -167,14 +167,14 @@ export const DEFAULT_PARAMS: VisualParams = {
   coneWidth: 0.52,
   coneFalloff: 0.44,
   coneLevel: 0.72,
-  scatterLevel: 0.42,
-  reflectLevel: 0.68,
-  coolLevel: 0.72,
-  sheetBind: 0.56,
-  coolCol: [0.471, 0.584, 0.651],      // mist blue #7895A6
+  scatterLevel: 0.20,
+  reflectLevel: 0.38,
+  coolLevel: 0.54,
+  sheetBind: 0.28,
+  coolCol: [0.440, 0.610, 0.820],
 
-  splatAniso: 0.72,
-  nearRatio: 0.05,
+  splatAniso: 0.22,
+  nearRatio: 0.025,
 
   view: 'composite',
   showMasks: false,

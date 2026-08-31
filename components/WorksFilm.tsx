@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useEffect, useState } from 'react'
+import { subscribeScroll } from './scrollBus'
 
 const EASE = 'cubic-bezier(0.4,0,0.2,1)'
 
@@ -117,9 +118,7 @@ export default function WorksFilm() {
       const vh = (scrolledPx / window.innerHeight) * 100
       setScrollVH(vh)
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
+    return subscribeScroll(onScroll)
   }, [])
 
   // Find which project + image index is active

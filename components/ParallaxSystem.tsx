@@ -1,5 +1,6 @@
 'use client'
 import { useEffect } from 'react'
+import { subscribeScroll } from './scrollBus'
 
 export default function ParallaxSystem() {
   useEffect(() => {
@@ -11,20 +12,20 @@ export default function ParallaxSystem() {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     if (!isMobile && !prefersReduced) {
+      const loop = () => {
+        current.x += (target.x - current.x) * 0.08
+        current.y += (target.y - current.y) * 0.08
+        document.documentElement.style.setProperty('--pointer-x', current.x.toFixed(4))
+        document.documentElement.style.setProperty('--pointer-y', current.y.toFixed(4))
+        const moving = Math.abs(target.x - current.x) + Math.abs(target.y - current.y) > 0.0005
+        raf = moving ? requestAnimationFrame(loop) : 0
+      }
       const onPointer = (e: PointerEvent) => {
         target.x = e.clientX / innerWidth - 0.5
         target.y = e.clientY / innerHeight - 0.5
+        if (!raf) raf = requestAnimationFrame(loop)
       }
-      window.addEventListener('pointermove', onPointer)
-
-      const loop = () => {
-        current.x += (target.x - current.x) * 0.06
-        current.y += (target.y - current.y) * 0.06
-        document.documentElement.style.setProperty('--pointer-x', current.x.toFixed(4))
-        document.documentElement.style.setProperty('--pointer-y', current.y.toFixed(4))
-        raf = requestAnimationFrame(loop)
-      }
-      loop()
+      window.addEventListener('pointermove', onPointer, { passive: true })
 
       return () => {
         window.removeEventListener('pointermove', onPointer)
@@ -39,8 +40,7 @@ export default function ParallaxSystem() {
         document.documentElement.style.setProperty('--pointer-x', '0')
         document.documentElement.style.setProperty('--pointer-y', ((progress - 0.5) * 0.3).toFixed(4))
       }
-      window.addEventListener('scroll', onScroll, { passive: true })
-      return () => window.removeEventListener('scroll', onScroll)
+      return subscribeScroll(onScroll)
     }
   }, [])
 

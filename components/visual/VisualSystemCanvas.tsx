@@ -29,8 +29,7 @@ function computeSpan(camera: THREE.PerspectiveCamera): Span {
 }
 
 function tierScale(tier: 0 | 1 | 2 | 3): number {
-  // tier 1 = 모바일. 40k * 0.30 = 12k (지시서 §8 권장 10~14k)
-  return tier === 3 ? 1 : tier === 2 ? 0.52 : tier === 1 ? 0.30 : 0
+  return tier === 3 ? 1 : tier === 2 ? 0.58 : tier === 1 ? 0.34 : 0
 }
 
 export type VisualStats = {
@@ -73,7 +72,7 @@ export default function VisualSystemCanvas({
     const tier = detectTier()
     if (tier === 0) return   // reduced-motion: 정적 배경만 남긴다
 
-    const dpr = Math.min(window.devicePixelRatio, tier >= 3 ? 1.5 : 1.0)
+    const dpr = Math.min(window.devicePixelRatio, tier >= 2 ? 1.0 : 0.85)
 
     /* WebGL이 없거나 컨텍스트 생성에 실패하는 환경이 실제로 존재한다.
        (GPU 차단 정책, 오래된 기기, 드라이버 블랙리스트, 원격 데스크톱 등)
@@ -261,11 +260,10 @@ export default function VisualSystemCanvas({
     spaceMesh.renderOrder = -1
     scene.add(spaceMesh)
 
-    /* ── L3 스모그 평면 3층 ───────────────────────────── */
+    /* 한 장의 낮은 농도 깊이층만 둔다. 이전 3중 평면은 회색 안개벽과
+       불필요한 overdraw를 만들었다. */
     const fogDefs = [
-      { z: -2.9, scale: 2.30, layer: 0.0, opacity: 0.24 },  // 후경 넓은 색면
-      { z: -1.6, scale: 1.85, layer: 0.5, opacity: 0.15 },  // 중경 광선 산란층
-      { z: -0.5, scale: 1.45, layer: 1.0, opacity: 0.08 },  // 전경 낮은 밀도 안개
+      { z: -2.4, scale: 2.05, layer: 0.25, opacity: 0.07 },
     ]
     const fogGeo = new THREE.PlaneGeometry(1, 1)
     const fogMeshes: THREE.Mesh[] = []
@@ -303,9 +301,8 @@ export default function VisualSystemCanvas({
     }
     sizeFog()
 
-    /* ── 3단계 마스크 갱신 ─────────────────────────────
-       DOM 레이아웃을 읽어 core/soft 텍스처를 다시 굽는다. 매 프레임 할 필요는
-       없고 리사이즈·스크롤·주기적 확인으로 충분하다. */
+    /* DOM 마스크는 리사이즈와 폰트 정착 때만 다시 굽는다. 스크롤/주기 갱신은
+       layout readback과 texture upload를 일으켜 포인터 프레임을 튀게 했다. */
     const syncMask = () => {
       mask.update(window.innerWidth, window.innerHeight)
       maskTexel.set(2 / window.innerWidth, 2 / window.innerHeight)
@@ -328,10 +325,10 @@ export default function VisualSystemCanvas({
       syncMask()
     }
     window.addEventListener('resize', onResize)
-    window.addEventListener('scroll', syncMask, { passive: true })
+    document.fonts?.ready.then(syncMask)
 
     /* ── RAF ──────────────────────────────────────────── */
-    let raf = 0, time = 0, last = performance.now(), frames = 0, fpsT = 0, fps = 0, tick = 0
+    let raf = 0, time = 0, last = performance.now(), frames = 0, fpsT = 0, fps = 0
     let lastStats: VisualStats = {
       fps: 0, points: 0, coverage: 0, tier, dpr, frameMs: 0,
       drawCalls: 0, geometries: 0, textures: 0, programs: 0,
@@ -343,11 +340,7 @@ export default function VisualSystemCanvas({
       raf = requestAnimationFrame(frame)
       const now = performance.now()
       const dt = Math.min((now - last) / 1000, 0.05)
-      last = now; time += dt; frames++; fpsT += dt
-      if (fpsT >= 0.5) { fps = frames / fpsT; frames = 0; fpsT = 0 }
-
-      if (visualEvents.rebuild !== lastRebuild) { lastRebuild = visualEvents.rebuild; rebuild() }
-      if (++tick % 30 === 0) syncMask()
+      last = now
 
       /* Hero를 벗어나는 경계에서 마지막 프레임을 한 번만 투명하게 지운다.
          clear 없이 조기 반환하면 fixed canvas의 Hero 프리셋이 Works 사진 등
@@ -362,6 +355,10 @@ export default function VisualSystemCanvas({
         return
       }
       wasActive = true
+
+      time += dt; frames++; fpsT += dt
+      if (fpsT >= 0.5) { fps = frames / fpsT; frames = 0; fpsT = 0 }
+      if (visualEvents.rebuild !== lastRebuild) { lastRebuild = visualEvents.rebuild; rebuild() }
 
       pointer.update(dt)
       const p = visualParams
@@ -451,9 +448,9 @@ export default function VisualSystemCanvas({
 
       /* 검수 캡처별 레이어 가시성 */
       const v = p.view
-      const showSpace = v === 'composite' || v === 'l1' || v === 'l2' || v === 'l1l2'
+      const showSpace = v === 'l1' || v === 'l2' || v === 'l1l2'
                      || v === 'cone' || v === 'reflect'
-      const showFog   = v === 'composite' || v === 'velocity'
+      const showFog   = tier >= 2 && (v === 'composite' || v === 'velocity')
       const layerOnly = LAYER_FILTER[v]
       const showSplat = v === 'composite' || v === 'masks' || v === 'velocity'
                      || v === 'dist' || layerOnly !== undefined
@@ -492,7 +489,6 @@ export default function VisualSystemCanvas({
       cancelAnimationFrame(raf)
       canvas.removeEventListener('webglcontextlost', onContextLost)
       window.removeEventListener('resize', onResize)
-      window.removeEventListener('scroll', syncMask)
       buffers?.main.dispose(); buffers?.optical.dispose()
       fogGeo.dispose(); fogMats.forEach(m => m.dispose()); mask.dispose()
       spaceMesh.geometry.dispose(); spaceMat.dispose()
