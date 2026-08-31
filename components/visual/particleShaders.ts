@@ -262,11 +262,11 @@ export const splatVert = /* glsl */`
 
     /* 밀도를 제곱으로 실어 고밀도 cluster만 드러나게 한다. 선형이면 성긴
        영역까지 같이 올라와 화면 전체가 균일한 점묘가 된다. */
-    float a = uOpacity * (0.25 + aBright * 0.75)
-            * (0.28 + aDensity * aDensity * 0.95) * (0.50 + depth * 0.50)
+    float a = uOpacity * (0.34 + aBright * 0.66)
+            * (0.42 + aDensity * aDensity * 0.78) * (0.58 + depth * 0.42)
             * clamp(visibility, 0.0, 1.6)
             /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
-            * (1.0 - isFar * 0.32);
+            * (1.0 - isFar * 0.24);
     a *= 1.0 - uContentSuppress * brightW * soft;
 
     /* A. Core Occlusion — 실루엣 내부는 입자가 보이지 않는다 */
@@ -290,8 +290,8 @@ export const splatVert = /* glsl */`
     float baseSize = isMicro * 1.35 + isMedium * 3.8 + isLarge * 10.0;
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
              * (0.45 + depth * 0.75) * (0.72 + lit * 1.1);
-    float lo = isMicro * 0.55 + isMedium * 1.8 + isLarge * 5.0;
-    float hi = isMicro * 1.9 + isMedium * 5.2 + isLarge * 10.0;
+    float lo = isMicro * 0.82 + isMedium * 2.0 + isLarge * 5.0;
+    float hi = isMicro * 2.1 + isMedium * 5.2 + isLarge * 10.0;
 
     /* large는 점이 아니라 흐릿한 공간면으로 읽혀야 한다 (지시서 §4).
        흐림은 falloff를 눕혀서가 아니라 **크기**로 얻는다.

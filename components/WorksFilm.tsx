@@ -42,7 +42,7 @@ const PROJECTS: Project[] = [
     title: 'SPORTS MONSTER',
     desc: '방문객의 움직임을 실시간 콘텐츠와 연결. 동작과 반응이 만드는 반복 가능한 체험 공간.',
     tags: ['인터랙티브', '게임 연출', '체험 설계'],
-    accent: '#E8955A',
+    accent: '#8D9FFF',
     images: ['/works/sports-01.png', '/works/sports-02.png', '/works/sports-03.png', '/works/sports-04.png'],
     mobilePosition: 'center 30%',  // 핵심 액션 화면 상단부
   },
@@ -150,7 +150,7 @@ export default function WorksFilm() {
     <div
       ref={containerRef}
       id="works"
-      style={{ position: 'relative', height: `${TOTAL_VH}vh`, background: '#0a0a0a' }}
+      style={{ position: 'relative', height: `${TOTAL_VH}vh`, background: '#07101f' }}
     >
       <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden' }}>
 
@@ -160,7 +160,7 @@ export default function WorksFilm() {
           position: 'absolute',
           top: 0, left: 0, right: 0,
           bottom: isMobile ? '38%' : '28%',
-          background: `#080808`,
+          background: `#07101f`,
           overflow: 'hidden',
         }}>
           {/* Project-tinted background wash */}
@@ -177,11 +177,14 @@ export default function WorksFilm() {
               const isNext = pi === activeProject && ii === activeImage + 1
               const isPrev = pi === activeProject && ii === activeImage - 1
               const prevProject = pi === activeProject - 1 && ii === PROJECTS[pi].images.length - 1
+              const projectEntry = activeProject > 0 && activeImage === 0
+              const entryBlend = Math.min(1, imageProgress / 0.34)
 
               let opacity = 0
-              if (isActive) opacity = 1
+              if (isActive) opacity = projectEntry ? entryBlend : 1
               else if (isNext) opacity = Math.max(0, (imageProgress - 0.6) / 0.4)
-              else if (isPrev || prevProject) opacity = 0
+              else if (prevProject) opacity = 1 - entryBlend
+              else if (isPrev) opacity = 0
 
               // Determine display mode per project + viewport
               const useContain = !isMobile || proj.alwaysContain
@@ -223,7 +226,7 @@ export default function WorksFilm() {
         {/* Text info area background */}
         <div style={{
           position: 'absolute', left: 0, right: 0, bottom: 0, height: isMobile ? '38%' : '28%',
-          background: '#080808',
+          background: '#07101f',
           zIndex: 'var(--z-haze)',
         }} />
 

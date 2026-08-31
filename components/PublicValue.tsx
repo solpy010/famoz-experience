@@ -26,14 +26,13 @@ export default function PublicValue() {
         style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: `
-            radial-gradient(ellipse 50% 60% at 70% 40%, #060d1a 0%, transparent 55%),
-            radial-gradient(ellipse 40% 50% at 30% 70%, #0a0814 0%, transparent 50%)
+            radial-gradient(ellipse 58% 66% at 72% 38%, rgba(25,105,190,.19) 0%, transparent 66%),
+            radial-gradient(ellipse 50% 58% at 28% 72%, rgba(99,69,193,.12) 0%, transparent 64%)
           `,
         }}
       />
 
-      {/* Canvas distortion — cyan/gold network feel */}
-      <DistortionCanvas color1="#52BFFF" color2="#C8A040" mouseForce={2.5} opacity={0.30} />
+      <DistortionCanvas color1="#65CFFF" color2="#8D82FF" mouseForce={1.1} opacity={0.45} />
 
       {/* Mid layer: network light nodes expanding */}
       <div

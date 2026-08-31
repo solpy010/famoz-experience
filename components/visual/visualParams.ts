@@ -106,9 +106,9 @@ export const DEFAULT_PARAMS: VisualParams = {
   densityContrast: 1.48,
   foregroundDensity: 0.42,
   contentFeather: 0.055,
-  contentSuppression: 0.82,
-  brightnessSuppression: 0.86,
-  pointerSuppression: 0.90,
+  contentSuppression: 0.64,
+  brightnessSuppression: 0.68,
+  pointerSuppression: 0.72,
   coreOcclusion: 1.0,
   deflect: 0.28,
 
@@ -118,7 +118,7 @@ export const DEFAULT_PARAMS: VisualParams = {
   largeRatio: 0.02,
   sizeScale: 0.58,
   gaussianSoftness: 1.12,
-  opacity: 0.82,
+  opacity: 0.90,
   reflectance: 0.76,
   additiveRatio: 0.035,
 
@@ -170,7 +170,7 @@ export const DEFAULT_PARAMS: VisualParams = {
   scatterLevel: 0.20,
   reflectLevel: 0.38,
   coolLevel: 0.54,
-  sheetBind: 0.28,
+  sheetBind: 0.12,
   coolCol: [0.440, 0.610, 0.820],
 
   splatAniso: 0.22,

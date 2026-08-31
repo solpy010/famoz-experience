@@ -39,8 +39,7 @@ export default function EndingScene() {
       style={{
         position: 'relative',
         overflow: 'hidden',
-        // Warm transition: black → warm brown → warm ivory
-        background: 'linear-gradient(180deg, #0a0a0a 0%, #0e0a07 35%, #130f09 65%, #1a1208 100%)',
+        background: 'linear-gradient(180deg, #07101f 0%, #0a1430 42%, #101536 72%, #15183c 100%)',
         paddingBlock: 'var(--section-gap)',
       }}
     >
@@ -51,8 +50,8 @@ export default function EndingScene() {
         style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: `
-            radial-gradient(ellipse 70% 50% at 50% 90%, rgba(200,160,64,0.07) 0%, transparent 65%),
-            radial-gradient(ellipse 40% 40% at 20% 30%, rgba(180,100,50,0.05) 0%, transparent 60%)
+            radial-gradient(ellipse 70% 50% at 50% 90%, rgba(111,133,255,.12) 0%, transparent 65%),
+            radial-gradient(ellipse 40% 40% at 20% 30%, rgba(91,211,255,.08) 0%, transparent 60%)
           `,
           animation: 'warm-glow 8s ease-in-out infinite',
         }}
@@ -63,7 +62,7 @@ export default function EndingScene() {
         className="px-mid"
         style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 55% 40% at 75% 60%, rgba(232,149,90,0.04) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 55% 40% at 75% 60%, rgba(171,132,255,.10) 0%, transparent 70%)',
         }}
       />
 

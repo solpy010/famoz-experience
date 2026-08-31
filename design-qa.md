@@ -29,6 +29,16 @@
 - Particle maximums are now 1.9 px micro, 5.2 px medium, and 10 px large. Depth layers receive separately biased blue, violet, and cyan lighting instead of gray desaturation.
 - Hero title scale changes from an 8.5vw/10rem ceiling to 6.15vw/7.25rem, preserving a title-page hierarchy while reopening the right and upper visual field.
 
+## Continuity and whole-page tone pass
+
+- Supplied screenshots confirmed that the hard horizontal lines were section seams, not WebGL tearing: opaque per-section black gradients ended on the exact boundary where the next transparent scene began.
+- Hero and the first mascot scene now meet through matching blue-black transition veils. `WhatWeCreate` no longer paints an opaque black edge and uses a bottom color bridge into Value.
+- `WhatWeCreate` no longer changes scenes with `Math.floor()` replacement. All three backgrounds and copy groups remain mounted and crossfade with continuous scroll weights.
+- Works project boundaries now overlap the previous final image and the next first image for the first 34% of the entry interval.
+- Green-black, orange-brown, warm charcoal, and muddy plum area fills were replaced across What, Value, Public Value, Works, and Ending with separated cyan, cobalt, indigo, and lilac fields.
+- The old 2D distortion canvas performed an O(600²) constellation-neighbor loop and created up to 120 radial gradients every frame. It now updates 420 desktop / 210 mobile reusable dots in a single O(n) loop, caps DPR at 1, and mounts only within 12% of the viewport.
+- Hero particle visibility loss came from stacked sheet binding, far-depth attenuation, density attenuation, and content masks after the particles had already been reduced in size. These gates were relaxed while point ceilings stayed at 2.1 / 5.2 / 10 px to improve visibility without coarse or glaring dots.
+
 ## Automated checks
 
 - `npm run build`: passed.

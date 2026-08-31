@@ -4,10 +4,10 @@ import DistortionCanvas from './DistortionCanvas'
 import { subscribeScroll } from './scrollBus'
 
 const VALUE_ITEMS = [
-  { text: '이해하기 쉬워집니다', sub: '복잡한 정보가 감각으로 전달됩니다', color: '#E8955A' },
-  { text: '직접 참여하게 됩니다', sub: '관람객의 행동이 경험의 주체가 됩니다', color: '#52BFFF' },
-  { text: '공간과 연결됩니다', sub: '장소가 관계로 기억됩니다', color: '#3DC992' },
-  { text: '오래 기억하게 됩니다', sub: '경험은 의미로 전환됩니다', color: '#C07AB5' },
+  { text: '이해하기 쉬워집니다', sub: '복잡한 정보가 감각으로 전달됩니다', color: '#8FD8FF' },
+  { text: '직접 참여하게 됩니다', sub: '관람객의 행동이 경험의 주체가 됩니다', color: '#A98CFF' },
+  { text: '공간과 연결됩니다', sub: '장소가 관계로 기억됩니다', color: '#66E8C1' },
+  { text: '오래 기억하게 됩니다', sub: '경험은 의미로 전환됩니다', color: '#D6C4FF' },
 ]
 
 const THRESHOLDS = [0.18, 0.38, 0.58, 0.78]
@@ -41,22 +41,22 @@ export default function ValueScene() {
         {/* Ambient gradient */}
         <div aria-hidden style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 60% 50% at 20% 40%, rgba(17,8,32,0.9) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 66% 58% at 22% 42%, rgba(49,77,185,.20) 0%, rgba(93,65,186,.08) 48%, transparent 76%)',
         }} />
 
         {/* Canvas distortion — warm orange/magenta */}
-        <DistortionCanvas color1="#E8955A" color2="#C07AB5" mouseForce={1.8} opacity={0.34} />
+        <DistortionCanvas color1="#648EFF" color2="#AE86FF" mouseForce={1.05} opacity={0.48} />
 
         <div className="shell" data-guard style={{ position: 'relative', zIndex: 'var(--z-content)', width: '100%' }}>
           <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 'clamp(2.5rem, 5vh, 4rem)' }}>
 
             {/* ── Headline ── */}
             <div data-reveal>
-              <p className="t-label" style={{ color: 'var(--ac-orange)', marginBottom: '1.25rem' }}>VALUE</p>
+              <p className="t-label" style={{ color: '#8FD8FF', marginBottom: '1.25rem' }}>VALUE</p>
               <h2 className="t-scene" style={{ maxWidth: '24ch' }}>
                 공간은 사람을 움직이고
                 <br />
-                <span style={{ color: 'rgba(237,232,224,0.32)' }}>참여는 기억으로 남습니다.</span>
+                <span style={{ color: 'rgba(201,211,242,.50)' }}>참여는 기억으로 남습니다.</span>
               </h2>
             </div>
 
@@ -71,7 +71,7 @@ export default function ValueScene() {
                 <div style={{
                   position: 'absolute', top: 0, left: 0, right: 0,
                   height: `${beamFill * 100}%`,
-                  background: 'linear-gradient(to bottom, var(--ac-orange) 0%, var(--ac-cyan) 50%, var(--ac-magenta) 100%)',
+                  background: 'linear-gradient(to bottom, #8FD8FF 0%, #788BFF 50%, #B895FF 100%)',
                   transition: 'height 0.25s cubic-bezier(0.4,0,0.2,1)',
                 }} />
                 {/* Beam glow tip */}

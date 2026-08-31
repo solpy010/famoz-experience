@@ -19,11 +19,11 @@ import { subscribeScroll } from './scrollBus'
    절대 블랙은 가장자리 감쇄에서만 나타난다. */
 const L0 = {
   indigo:   '#0A0E19',
-  petrol:   '#0B2024',
-  plum:     '#241329',
-  graphite: '#191721',
-  charcoal: '#211D1C',
-  emerald:  '#0A2320',
+  petrol:   '#092846',
+  plum:     '#211B55',
+  graphite: '#111B36',
+  charcoal: '#111A34',
+  emerald:  '#093743',
 } as const
 
 const field = (a: string, b: string, base: string) => [
@@ -40,13 +40,13 @@ const SECTION_BG: Record<string, string> = {
     'radial-gradient(ellipse 44% 74% at 88% 56%, #062D58 0%, transparent 66%)',
     'radial-gradient(ellipse 130% 104% at 50% 52%, #0B1733 0%, #070E23 68%, #050A18 100%)',
   ].join(', '),
-  whatA:       field(L0.graphite, L0.petrol,   L0.indigo),    // 이야기 공간
-  whatB:       field(L0.plum,     L0.charcoal, L0.charcoal),  // 상호작용 공간
-  whatC:       field(L0.petrol,   L0.indigo,   L0.indigo),    // AI 도움 공간
-  value:       field(L0.plum,     L0.charcoal, L0.graphite),  // 상호작용 계열
-  publicValue: field(L0.emerald,  L0.graphite, L0.indigo),    // Deep Emerald + Graphite
-  works:       field(L0.charcoal, L0.plum,     L0.charcoal),  // 이미지 유래 (임시)
-  ending:      field(L0.charcoal, L0.plum,     L0.charcoal),  // Warm Charcoal + Deep Plum
+  whatA:       field('#0B4450', '#132F63', L0.indigo),
+  whatB:       field('#173A72', '#30256F', L0.indigo),
+  whatC:       field('#30236E', '#10396B', L0.indigo),
+  value:       field('#222A72', '#173B6A', L0.graphite),
+  publicValue: field('#0B4054', '#292667', L0.indigo),
+  works:       field('#132B52', '#28215F', L0.indigo),
+  ending:      field('#1B2459', '#143C65', L0.indigo),
 }
 
 

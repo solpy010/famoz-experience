@@ -1,239 +1,57 @@
 'use client'
-import { useRef, useEffect, useState } from 'react'
+
+import { useEffect, useRef, useState } from 'react'
 import DistortionCanvas from './DistortionCanvas'
 import { subscribeScroll } from './scrollBus'
 
-const EASE = 'cubic-bezier(0.4,0,0.2,1)'
+const STAGES = [
+  { accent: '#66e8c1', label: 'WHAT WE CREATE · 01', bg: 'radial-gradient(ellipse 72% 78% at 28% 48%, rgba(28,160,144,.20) 0%, rgba(15,75,102,.10) 42%, transparent 76%)', kw: 'Immersive', kwColor: 'rgba(90,232,205,.065)', lines: ['이야기가', '장면으로 펼쳐지는', '몰입형 미디어 공간.'], highlight: 1, body: '다면 미디어가 관람객의 이동 경로에 맞춰\n순차적으로 활성화됩니다.' },
+  { accent: '#8ebcff', label: 'WHAT WE CREATE · 02', bg: 'radial-gradient(ellipse 68% 74% at 62% 44%, rgba(67,118,246,.22) 0%, rgba(111,88,232,.10) 46%, transparent 77%)', kw: 'Reactive', kwColor: 'rgba(112,155,255,.065)', lines: ['움직임과 선택에', '반응하는', '인터랙티브 경험.'], highlight: 1, body: '방문객의 행동이 장면을 결정합니다.\n똑같은 경험은 없습니다.' },
+  { accent: '#c4a4ff', label: 'WHAT WE CREATE · 03', bg: 'radial-gradient(ellipse 70% 76% at 48% 56%, rgba(128,84,238,.22) 0%, rgba(31,130,220,.10) 48%, transparent 78%)', kw: 'Spatial', kwColor: 'rgba(188,155,255,.065)', lines: ['위치와 상황을 이해해', '도움을 주는', 'AI 공간 서비스.'], highlight: 1, body: '필요한 순간, 공간이 먼저 알아채고\n적절한 안내를 건네줍니다.' },
+] as const
 
-interface Stage {
-  accent: string
-  label: string
-  bg: string
-  kw: string
-  kwColor: string
-  headingClass: string
-  headingLines: string[]
-  highlightLine: number
-  body: string
-  effectLayer: React.CSSProperties
-  canvas1: string
-  canvas2: string
-  canvasForce: number
-}
-
-const STAGES: Stage[] = [
-  {
-    accent: 'var(--ac-emerald)',
-    label: 'WHAT WE CREATE · 01',
-    bg: 'radial-gradient(ellipse 65% 70% at 40% 40%, #0d1a12 0%, var(--black) 60%)',
-    kw: 'Immersive',
-    kwColor: 'rgba(61,201,146,0.07)',
-    headingClass: 'grd-emerald',
-    headingLines: ['이야기가', '장면으로 펼쳐지는', '몰입형 미디어 공간.'],
-    highlightLine: 1,
-    body: '다면 미디어가 관람객의 이동 경로에 맞춰\n순차적으로 활성화됩니다.',
-    effectLayer: {
-      background: 'radial-gradient(ellipse 80% 60% at 35% 55%, rgba(61,201,146,0.1) 0%, transparent 70%)',
-    },
-    canvas1: '#3DC992',
-    canvas2: '#52BFFF',
-    canvasForce: 2,
-  },
-  {
-    accent: 'var(--ac-orange)',
-    label: 'WHAT WE CREATE · 02',
-    bg: 'radial-gradient(ellipse 65% 70% at 60% 50%, #1a0e05 0%, var(--black) 60%)',
-    kw: 'Reactive',
-    kwColor: 'rgba(232,149,90,0.07)',
-    headingClass: 'grd-gold',
-    headingLines: ['움직임과 선택에', '반응하는', '인터랙티브 경험.'],
-    highlightLine: 1,
-    body: '방문객의 행동이 장면을 결정합니다.\n똑같은 경험은 없습니다.',
-    effectLayer: {
-      background: 'radial-gradient(ellipse 55% 55% at 55% 45%, rgba(200,160,64,0.12) 0%, rgba(232,149,90,0.08) 40%, transparent 70%)',
-    },
-    canvas1: '#E8955A',
-    canvas2: '#C8A040',
-    canvasForce: 3.5,
-  },
-  {
-    accent: 'var(--ac-magenta)',
-    label: 'WHAT WE CREATE · 03',
-    bg: 'radial-gradient(ellipse 65% 70% at 50% 60%, #180d28 0%, var(--black) 60%)',
-    kw: 'Spatial',
-    kwColor: 'rgba(192,122,181,0.07)',
-    headingClass: 'grd-magenta',
-    headingLines: ['위치와 상황을 이해해', '도움을 주는', 'AI 공간 서비스.'],
-    highlightLine: 1,
-    body: '필요한 순간, 공간이 먼저 알아채고\n적절한 안내를 건네줍니다.',
-    effectLayer: {
-      background: 'linear-gradient(135deg, rgba(82,191,255,0.07) 0%, rgba(192,122,181,0.1) 50%, transparent 80%)',
-    },
-    canvas1: '#C07AB5',
-    canvas2: '#52BFFF',
-    canvasForce: 1.5,
-  },
-]
-
-// Sub-progress thresholds — low enough to show content quickly on stage entry
-const T = { label: 0.001, line0: 0.04, line1: 0.12, line2: 0.22, body: 0.35 }
-
-function revealStyle(visible: boolean, delay = 0): React.CSSProperties {
-  return {
-    opacity: visible ? 1 : 0,
-    transform: visible ? 'translateY(0)' : 'translateY(16px)',
-    filter: visible ? 'blur(0)' : 'blur(4px)',
-    transition: `opacity 0.55s ${EASE} ${delay}s, transform 0.55s ${EASE} ${delay}s, filter 0.55s ${EASE} ${delay}s`,
-  }
-}
+const clamp = (value: number) => Math.max(0, Math.min(1, value))
+const ease = (value: number) => { const t = clamp(value); return t * t * (3 - 2 * t) }
 
 export default function WhatWeCreate() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [stageIdx, setStageIdx] = useState(0)
-  const [sub, setSub] = useState(0)
+  const progressRef = useRef(-1)
+  const [progress, setProgress] = useState(0)
 
-  useEffect(() => {
-    function onScroll() {
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const total = el.offsetHeight - window.innerHeight
-      const progress = Math.max(0, Math.min(0.9999, -rect.top / total))
-      const stageFloat = progress * 3
-      const idx = Math.min(2, Math.floor(stageFloat))
-      setSub(stageFloat - idx)
-      setStageIdx(idx)
-    }
-    return subscribeScroll(onScroll)
-  }, [])
+  useEffect(() => subscribeScroll(() => {
+    const element = containerRef.current
+    if (!element) return
+    const total = Math.max(1, element.offsetHeight - innerHeight)
+    const next = clamp(-element.getBoundingClientRect().top / total)
+    if (Math.abs(next - progressRef.current) > .001) { progressRef.current = next; setProgress(next) }
+  }), [])
 
-  const s = STAGES[stageIdx]
-  const show = (threshold: number) => sub >= threshold
+  const position = progress * (STAGES.length - 1)
+  const nearest = Math.round(position)
 
   return (
-    <div id="what" ref={containerRef} style={{ position: 'relative', height: '600vh' }}>
-      <section style={{
-        position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden',
-        display: 'flex', alignItems: 'center',
-        background: 'transparent',
-      }}>
-        {/* Far layer — base gradient + parallax */}
-        <div
-          aria-hidden
-          className="px-far"
-          style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            background: s.bg,
-            transition: `background 1s ${EASE}`,
-          }}
-        />
-
-        {/* Mid layer — scene-specific + parallax */}
-        <div
-          aria-hidden
-          className="px-mid"
-          style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            transition: `opacity 0.8s ${EASE}`,
-            ...s.effectLayer,
-          }}
-        />
-
-        {/* Canvas distortion — per-stage color */}
-        <DistortionCanvas
-          color1={s.canvas1}
-          color2={s.canvas2}
-          mouseForce={s.canvasForce}
-          opacity={0.40}
-        />
-
-        {/* Near layer — decorative keyword + parallax */}
-        <div
-          aria-hidden
-          className="px-near"
-          style={{
-            position: 'absolute', bottom: '6%', right: '-2%',
-            fontSize: 'clamp(8rem, 20vw, 20rem)', fontWeight: 900,
-            letterSpacing: '-0.05em', lineHeight: 1,
-            fontFamily: "'Paperlogy', 'Pretendard', sans-serif",
-            color: s.kwColor,
-            transition: `color 0.8s ${EASE}`,
-            pointerEvents: 'none', userSelect: 'none',
-          }}
-        >
-          {s.kw}
-        </div>
-
-        {/* Content — sequential reveal */}
-        <div className="shell" data-guard style={{ width: '100%' }}>
-
-          {/* Label */}
-          <p
-            className="t-label"
-            style={{
-              color: s.accent,
-              marginBottom: 'clamp(1.5rem, 3vh, 2.5rem)',
-              transition: `color 0.5s ${EASE}`,
-              ...revealStyle(show(T.label)),
-            }}
-          >
-            {s.label}
-          </p>
-
-          {/* Heading lines — revealed one by one */}
-          <h2
-            className="t-scene"
-            style={{ maxWidth: '16ch', marginBottom: 'clamp(1.25rem, 2.5vh, 2rem)' }}
-          >
-            {s.headingLines.map((line, i) => {
-              const threshold = i === 0 ? T.line0 : i === 1 ? T.line1 : T.line2
-              return (
-                <span
-                  key={`${stageIdx}-line-${i}`}
-                  style={{ display: 'block', ...revealStyle(show(threshold), i * 0.04) }}
-                >
-                  {i === s.highlightLine ? (
-                    <span className={`kw-light ${s.headingClass} is-visible`}>
-                      {line}
-                    </span>
-                  ) : line}
-                </span>
-              )
-            })}
-          </h2>
-
-          {/* Body */}
-          <p
-            className="t-body"
-            style={{
-              maxWidth: '36ch',
-              whiteSpace: 'pre-line',
-              ...revealStyle(show(T.body)),
-            }}
-          >
-            {s.body}
-          </p>
-        </div>
-
-        {/* Progress dots */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute', right: 'clamp(20px, 4vw, 44px)', top: '50%',
-            transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 5,
-          }}
-        >
-          {STAGES.map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: '5px', height: '5px', borderRadius: '50%',
-                background: i === stageIdx ? s.accent : 'var(--text-muted)',
-                transform: i === stageIdx ? 'scale(1.5)' : 'scale(1)',
-                transition: `background 0.5s ${EASE}, transform 0.5s ${EASE}`,
-              }}
-            />
-          ))}
+    <div id="what" ref={containerRef} className="scene-flow" style={{ position: 'relative', height: '520vh' }}>
+      <section style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden', display: 'flex', alignItems: 'center', background: 'transparent' }}>
+        {STAGES.map((stage, index) => {
+          const weight = ease(1 - Math.abs(position - index))
+          const local = ease(clamp(position - index + 1))
+          return (
+            <div key={stage.label} aria-hidden={weight < .04} style={{ position: 'absolute', inset: 0, opacity: weight, pointerEvents: 'none' }}>
+              <div className="px-far" style={{ position: 'absolute', inset: 0, background: stage.bg }} />
+              <div className="px-near" style={{ position: 'absolute', bottom: '5%', right: '-2%', fontSize: 'clamp(8rem,20vw,20rem)', fontWeight: 800, letterSpacing: '-.06em', lineHeight: 1, fontFamily: "'Paperlogy','Pretendard',sans-serif", color: stage.kwColor, userSelect: 'none' }}>{stage.kw}</div>
+              <div className="shell" data-guard style={{ position: 'absolute', top: '50%', left: 0, transform: `translate3d(0,calc(-50% + ${(1 - local) * 28}px),0)`, opacity: local }}>
+                <p className="t-label" style={{ color: stage.accent, marginBottom: 'clamp(1.5rem,3vh,2.5rem)' }}>{stage.label}</p>
+                <h2 className="t-scene" style={{ maxWidth: '16ch', marginBottom: 'clamp(1.25rem,2.5vh,2rem)' }}>
+                  {stage.lines.map((line, lineIndex) => <span key={line} style={{ display: 'block', color: lineIndex === stage.highlight ? stage.accent : undefined }}>{line}</span>)}
+                </h2>
+                <p className="t-body" style={{ maxWidth: '36ch', whiteSpace: 'pre-line' }}>{stage.body}</p>
+              </div>
+            </div>
+          )
+        })}
+        <DistortionCanvas color1="#5f8dff" color2="#a27cff" mouseForce={1.15} opacity={0.52} />
+        <div aria-hidden style={{ position: 'absolute', right: 'clamp(20px,4vw,44px)', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 12, zIndex: 5 }}>
+          {STAGES.map((stage, index) => <span key={stage.label} style={{ width: 5, height: 5, borderRadius: '50%', background: index === nearest ? stage.accent : 'rgba(170,190,225,.28)', transform: index === nearest ? 'scale(1.5)' : 'scale(1)', transition: 'background .45s ease, transform .45s ease' }} />)}
         </div>
       </section>
     </div>
