@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FAMOZ VISUAL.LAB
 
-## Getting Started
+㈜파모즈 회사 소개 랜딩페이지. 전시·공공·미디어 공간 경험을 다루는 스튜디오의
+공간감을 WebGL 배경으로 구현한다.
 
-First, run the development server:
+**작업을 이어받는다면 [HANDOFF.md](./HANDOFF.md) 를 먼저 읽으십시오.**
+코드만 봐서는 알 수 없는 미술 판정 기준과 셰이더 함정이 정리돼 있습니다.
+
+## 시작
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git checkout integration/hero-visual-system   # 최신 브랜치. master는 뒤처져 있음
+npm install
+npm run dev        # http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| 명령 | 용도 |
+|---|---|
+| `npm run dev` | 개발 서버 (우하단에 성능 오버레이 표시) |
+| `npm run build` | 프로덕션 빌드 + 타입 검사 |
+| `npm start` | 빌드 결과 실행 |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+lint 스크립트와 테스트 스위트는 아직 없습니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 라우트
 
-## Learn More
+- `/` — 회사 소개 (6개 장면)
+- `/visual-lab` — 배경 시스템 검수용 내부 페이지. Leva 디버그 패널과 레이어별
+  분리 뷰를 제공하며 검색 색인에서 제외됨
 
-To learn more about Next.js, take a look at the following resources:
+## 기술
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Next.js 16 (App Router) · React 19 · Three.js 0.185 · TypeScript
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+배경은 CSS 유색 암부(L0) 위에 WebGL 캔버스 **하나**가 공간면(L1) · 방향성
+광원(L2) · 시트 종속 파티클(L3)을 그리는 구조입니다. 타이포와 이미지는 항상
+그 위에 오며, 콘텐츠 영역에서는 마스크가 입자를 억제해 가독성을 지킵니다.
 
-## Deploy on Vercel
+자세한 구조와 레이어 계약은 [HANDOFF.md](./HANDOFF.md), 미술 기준은
+`.claude/skills/famoz-art-direction/SKILL.md` 를 참조하십시오.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 배포
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Vercel. 현재 임시 배포 상태이며 도메인 연결 절차는 [DEPLOY.md](./DEPLOY.md) 참조.
