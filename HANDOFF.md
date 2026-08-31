@@ -16,6 +16,9 @@ npm run dev                                    # localhost:3001
 | `visual-system-rebuild` | 시각 시스템 검증 시점 (태그 `visual-lab-v2`) |
 | `master`, `main` | 낡음. 참고하지 말 것 |
 
+**현재 결함 목록은 [AUDIT.md](./AUDIT.md) 에 있다.** 실제로 실행해서 확인한
+것과 확인하지 못한 것을 구분해 적어뒀으니 거기서부터 시작할 것.
+
 **작업 전 필독:** `.claude/skills/` 의 4개 문서. 특히 `famoz-art-direction/SKILL.md`
 는 이 프로젝트의 미술 판정 기준이며, 여기 적힌 금지 항목을 어기면 실패로 본다.
 
@@ -149,7 +152,10 @@ warm ivory      #EEE8DF   텍스트
 - 전역 레이어 계약, 콘텐츠 가독성 확보
 - 배포 준비 (메타데이터·OG·JSON-LD·robots·sitemap) 및 임시 배포
 
-**안 된 것**
+**안 된 것** (전체 목록은 `AUDIT.md`)
+- **Hero 프리셋이 다른 장면까지 따라온다.** 비활성 시 `renderer.clear()` 를
+  하지 않아 마지막 프레임이 남는다. Works 사진 위에 파티클이 겹치는 것을 육안 확인
+- **Canvas 1개는 Hero 한정.** what/value 2개, public 3개
 - **나머지 5개 장면 미이식.** Hero 프리셋을 그대로 복제하지 말 것 —
   장면마다 다른 "사건"을 가져야 한다 (art-direction 스킬 참조)
 - **mist blue / dusty amber가 아직 반사광으로 읽히지 않는다.** 세기를 올리는
