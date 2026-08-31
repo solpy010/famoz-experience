@@ -34,19 +34,19 @@ export type Sheet = {
 
 export const SHEETS: Sheet[] = [
   // 후경 — 크게 휘어 프레임 밖으로 나간다. 거의 암부. 냉색 편향.
-  { yc: 0.34, amp: 0.10, freq: 1.35, phase: 0.5, bend: -0.52, thick: 0.150,
+  { yc: 0.34, amp: 0.10, freq: 1.35, phase: 0.5, bend: -0.52, thick: 0.105,
     depth: 0.10, tilt: 0.34, swing: 0.94, rough: 0.85, absorb: 0.80,
-    presScale: 0.75, presBias: 0.40, tone: -0.70 },
+    presScale: 0.82, presBias: 0.52, tone: -0.70 },
 
   // 중경 — 주 표면. 곡률이 커서 한쪽은 광원을 보고 한쪽은 등진다.
-  { yc: -0.04, amp: 0.145, freq: 0.95, phase: 2.6, bend: 0.34, thick: 0.088,
+  { yc: -0.04, amp: 0.145, freq: 0.95, phase: 2.6, bend: 0.34, thick: 0.064,
     depth: 0.55, tilt: 0.62, swing: 1.25, rough: 0.42, absorb: 0.55,
-    presScale: 1.05, presBias: 0.52, tone: -0.15 },
+    presScale: 1.18, presBias: 0.62, tone: -0.15 },
 
   // 전경 우하 — 작고 기울어진 반사면. 난색 반사를 받는 유일한 면.
-  { yc: -0.30, amp: 0.055, freq: 2.35, phase: 5.1, bend: 0.30, thick: 0.062,
+  { yc: -0.30, amp: 0.055, freq: 2.35, phase: 5.1, bend: 0.30, thick: 0.046,
     depth: 0.90, tilt: 0.48, swing: 1.05, rough: 0.30, absorb: 0.35,
-    presScale: 1.55, presBias: 0.60, tone: 0.85 },
+    presScale: 1.72, presBias: 0.68, tone: 0.85 },
 ]
 
 const f = (n: number) => n.toFixed(4)
