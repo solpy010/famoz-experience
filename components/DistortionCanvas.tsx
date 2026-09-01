@@ -25,7 +25,11 @@ function DistortionCanvasInner({ color1, color2, opacity = 1, mouseForce = 1 }: 
     const count = coarse ? 210 : 420
     let dots: Dot[] = []
     let width = 1, height = 1, dpr = 1, raf = 0, time = 0
-    let pointerX = .5, pointerY = .5
+    let pointerX = .5, pointerY = .5, rawX = .5, rawY = .5
+    const onPointer = (event: PointerEvent) => {
+      rawX = event.clientX / innerWidth
+      rawY = event.clientY / innerHeight
+    }
 
     const resize = () => {
       dpr = Math.min(devicePixelRatio, 1)
@@ -44,9 +48,8 @@ function DistortionCanvasInner({ color1, color2, opacity = 1, mouseForce = 1 }: 
 
     const frame = () => {
       time += .006
-      const root = document.documentElement.style
-      const targetX = (parseFloat(root.getPropertyValue('--pointer-x') || '0') + .5) * width
-      const targetY = (parseFloat(root.getPropertyValue('--pointer-y') || '0') + .5) * height
+      const targetX = rawX * width
+      const targetY = rawY * height
       pointerX += (targetX - pointerX) * .055
       pointerY += (targetY - pointerY) * .055
       ctx.clearRect(0, 0, width, height)
@@ -86,7 +89,12 @@ function DistortionCanvasInner({ color1, color2, opacity = 1, mouseForce = 1 }: 
     resize()
     frame()
     window.addEventListener('resize', resize)
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize) }
+    window.addEventListener('pointermove', onPointer, { passive: true })
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('pointermove', onPointer)
+    }
   }, [color1, color2, mouseForce])
 
   return <canvas ref={canvasRef} aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity }} />

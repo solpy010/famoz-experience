@@ -47,6 +47,15 @@
 - Pointer wake changes from five shader segments to four. The remaining displacement is depth-scaled so near particles move earlier/farther and far particles respond later/less, making parallax depth—not cursor repulsion—the dominant interaction cue.
 - The particle shader now uses an analytical low-frequency flow and two mask reads. This preserves drift and text safety while materially lowering vertex cost.
 
+## Single-pass flow pass
+
+- The latest screenshot confirmed that particles were visible as a sparse static field but did not read as a current. Local oscillation around each origin was replaced by wrapped horizontal advection with coherent vertical waves and depth-dependent speed.
+- The global `ParallaxSystem` pointer RAF was removed from the page. It previously updated root CSS variables on mouse movement, invalidating styles for parallax nodes across the entire long document while WebGL was rendering separately.
+- Nearby 2D canvases now read pointer coordinates locally only while mounted.
+- Hero particles are reduced from 18,000 across two point passes to 11,000 in one NormalBlending pass. The additive optical pass is removed.
+- Per-particle Henyey–Greenstein `pow` lighting is replaced with two low-frequency distance lights.
+- Current main-pass vertex work is: one wrapped flow, one wave, four pointer segments, two mask reads, and two distance lights. The earlier surface/corridor/noise/optical work is absent.
+
 ## Automated checks
 
 - `npm run build`: passed.

@@ -112,7 +112,7 @@ export const DEFAULT_PARAMS: VisualParams = {
   coreOcclusion: 1.0,
   deflect: 0.28,
 
-  count: 18_000,
+  count: 11_000,
   microRatio: 0.78,
   mediumRatio: 0.19,
   largeRatio: 0.03,
@@ -120,10 +120,10 @@ export const DEFAULT_PARAMS: VisualParams = {
   gaussianSoftness: 1.12,
   opacity: 0.96,
   reflectance: 0.76,
-  additiveRatio: 0.035,
+  additiveRatio: 0,
 
   baseCurlScale: 0.26,
-  baseCurlStrength: 0.040,
+  baseCurlStrength: 0.085,
   pointerSmoothing: 0.028,
   velocitySmoothing: 0.09,
   pointerRadius: 0.12,

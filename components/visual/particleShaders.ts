@@ -91,28 +91,13 @@ const LIGHT_GLSL = /* glsl */`
   uniform vec3  uCamPos;
   uniform float uAnisotropy, uReflectance, uSideLevel, uFogAbsorb;
 
-  float henyeyGreenstein(float cosT, float g){
-    float gg = g * g;
-    return min((1.0 - gg) / pow(max(1.0 + gg - 2.0 * g * cosT, 1e-3), 1.5), 6.0);
-  }
-
-  /* 파티클은 발광하지 않는다. 광원에서 온 빛의 전방 산란만 돌려준다. */
+  /* 두 저주파 광원의 거리 감쇠만 계산한다. 이전 HG pow 연산은 작은 점에서
+     시각 차이가 거의 없으면서 모든 vertex 비용을 크게 올렸다. */
   vec3 externalLight(vec3 pos, out float lit){
-    vec3 V = normalize(pos - uCamPos);
     vec3 dM = pos - uMainLight;
     vec3 dS = pos - uSideLight;
-
-    /* 감쇠는 볼륨 전체(반경 ~4)에 걸쳐 방향성이 남을 만큼 완만해야 한다.
-       계수가 크면 광원 바로 옆만 밝고 나머지는 전부 검게 죽는다. */
-    /* 감쇠를 완만하게 둬 광원이 넓은 저주파 gradient field로 섞이게 한다.
-       세우면 색 덩어리가 띠로 갈라진다 (지시서 §3). 대신 측면광의 세기를
-       주광원보다 낮춰(uSideLevel) 두 고채도 색이 동일 면적·동일 밝기로
-       경쟁하지 않게 한다. */
-    float attM = 1.0 / (1.0 + dot(dM, dM) * 0.062);
-    float attS = 1.0 / (1.0 + dot(dS, dS) * 0.098);
-
-    float sM = attM * henyeyGreenstein(dot(normalize(dM), V), uAnisotropy) * 3.1;
-    float sS = attS * henyeyGreenstein(dot(normalize(dS), V), uAnisotropy * 0.7) * 3.1 * uSideLevel;
+    float sM = 1.35 / (1.0 + dot(dM, dM) * 0.075);
+    float sS = 1.10 / (1.0 + dot(dS, dS) * 0.105) * uSideLevel;
 
     lit = sM + sS;
     return (uMainColor * sM + uSideColor * sS) * uReflectance;
@@ -145,6 +130,7 @@ export const splatVert = /* glsl */`
 
   uniform float uLayerFilter;   /* -1 전부, 0 far, 1 mid, 2 near */
   uniform float uSplatAniso, uAspect, uSheetBind;
+  uniform vec2  uSpan;
   uniform vec2  uLightOrigin;
   uniform float uLightZ;
 
@@ -171,13 +157,13 @@ export const splatVert = /* glsl */`
     float tau   = isMicro*uTauMicro   + isMedium*uTauMedium   + isLarge*uTauLarge;
 
     /* 기본 대기 흐름 — 포인터가 있어도 덮어쓰지 않는다 (§11) */
-    float t = uTime * (0.075 + depth * 0.045);
-    vec3 baseFlow = vec3(
-      sin(origin.y * 1.7 + origin.z * .8 + t + aSeed * 6.283),
-      cos(origin.x * 1.25 - origin.z * .55 + t * .83 + aSeed * 4.7),
-      sin(origin.x * .7 + origin.y * .6 + t * .45)
-    ) * uBaseCurlStrength;
-    vec3 pos = origin + baseFlow * (0.55 + depth * 1.05);
+    float speed = 0.035 + depth * 0.075;
+    float travel = uTime * speed;
+    vec3 pos = origin;
+    pos.x = mod(origin.x + uSpan.x + travel + sin(origin.y * 1.4 + aSeed * 6.283) * .08, uSpan.x * 2.0) - uSpan.x;
+    float wave = sin(pos.x * .72 + origin.y * 1.18 + uTime * (.10 + depth * .04) + aSeed * 3.2);
+    vec3 baseFlow = vec3(1.0, wave * .62, cos(wave + aSeed * 5.1) * .18) * uBaseCurlStrength;
+    pos.y += wave * (.035 + depth * .075);
 
     float exposure;
     pos.xy += strokeForce(pos.xy, lag, fsc, tau, exposure) * (0.55 + depth * 0.85);

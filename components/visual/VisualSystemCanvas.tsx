@@ -106,7 +106,6 @@ export default function VisualSystemCanvas({
     camera.position.z = CAM_Z
 
     let span = computeSpan(camera)
-    const spanVec = new THREE.Vector2(span.x, span.y)
     pointer.setView(Math.tan((FOV * Math.PI / 180) * 0.5) * (CAM_Z - Z_MID), camera.aspect)
 
     /* ── 공유 uniform ─────────────────────────────────── */
@@ -160,6 +159,7 @@ export default function VisualSystemCanvas({
       uLayerFilter:     { value: -1 },
       uSplatAniso:      { value: visualParams.splatAniso },
       uAspect:          { value: camera.aspect },
+      uSpan:            { value: new THREE.Vector2(span.x, span.y) },
       uSheetBind:       { value: visualParams.sheetBind },
       uLightOrigin:     { value: new THREE.Vector2(...visualParams.lightOrigin) },
       uLightZ:          { value: visualParams.lightZ },
@@ -173,16 +173,9 @@ export default function VisualSystemCanvas({
       uTauMedium:  { value: LAYER_RESPONSE.medium.tau },
       uTauLarge:   { value: LAYER_RESPONSE.large.tau },
     }
-    // 광학 입자는 Additive라 노출 상한을 조금 더 준다 (§9: 최대 1.8배)
-    const opticalUnis = { ...splatUnis, uRevealCap: { value: 0.8 }, uOpacity: { value: visualParams.opacity * 0.55 } }
-
     const splatMat = new THREE.ShaderMaterial({
       vertexShader: splatVert, fragmentShader: splatFrag, uniforms: splatUnis,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending,
-    })
-    const opticalMat = new THREE.ShaderMaterial({
-      vertexShader: splatVert, fragmentShader: splatFrag, uniforms: opticalUnis,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     })
 
     /* ── 지오메트리 ───────────────────────────────────── */
@@ -192,10 +185,8 @@ export default function VisualSystemCanvas({
     }
     let buffers: SplatBuffers | null = null
     const mainPoints = new THREE.Points(new THREE.BufferGeometry(), splatMat)
-    const optPoints  = new THREE.Points(new THREE.BufferGeometry(), opticalMat)
     mainPoints.frustumCulled = false
-    optPoints.frustumCulled = false
-    scene.add(mainPoints, optPoints)
+    scene.add(mainPoints)
 
     let stats = { points: 0, coverage: 0 }
     const rebuild = () => {
@@ -212,9 +203,8 @@ export default function VisualSystemCanvas({
         nearRatio: tier <= 1 ? 0 : visualParams.nearRatio,
       })
       mainPoints.geometry = buffers.main
-      optPoints.geometry = buffers.optical
       stats = {
-        points: buffers.main.getAttribute('position').count + buffers.optical.getAttribute('position').count,
+        points: buffers.main.getAttribute('position').count,
         coverage: buffers.coverage,
       }
     }
@@ -317,9 +307,8 @@ export default function VisualSystemCanvas({
       spaceUnis.uAspect.value = camera.aspect
       camInfo.aspect = camera.aspect
       splatUnis.uAspect.value = camera.aspect
-      opticalUnis.uAspect.value = camera.aspect
       span = computeSpan(camera)
-      spanVec.set(span.x, span.y)
+      splatUnis.uSpan.value.set(span.x, span.y)
       pointer.setView(Math.tan((FOV * Math.PI / 180) * 0.5) * (CAM_Z - Z_MID), camera.aspect)
       sizeFog()
       syncMask()
@@ -393,7 +382,6 @@ export default function VisualSystemCanvas({
       }
 
       applyShared(splatUnis as unknown as Record<string, { value: unknown }>)
-      applyShared(opticalUnis as unknown as Record<string, { value: unknown }>)
       splatUnis.uSizeScale.value = p.sizeScale
       splatUnis.uOpacity.value = p.opacity * gain
       splatUnis.uSoftness.value = p.gaussianSoftness
@@ -403,16 +391,6 @@ export default function VisualSystemCanvas({
       splatUnis.uPointerSuppress.value = p.pointerSuppression
       splatUnis.uCoreOcclusion.value = p.coreOcclusion
       splatUnis.uDeflect.value = p.deflect
-      opticalUnis.uSizeScale.value = p.sizeScale
-      opticalUnis.uOpacity.value = p.opacity * 0.55 * gain
-      opticalUnis.uSoftness.value = p.gaussianSoftness
-      opticalUnis.uBaseCurlScale.value = p.baseCurlScale
-      opticalUnis.uBaseCurlStrength.value = p.baseCurlStrength
-      opticalUnis.uBrightSuppress.value = p.brightnessSuppression
-      opticalUnis.uPointerSuppress.value = p.pointerSuppression
-      /* 광학(additive) 입자는 실루엣 내부에서 100% 제거한다 (지시서 §1-A) */
-      opticalUnis.uCoreOcclusion.value = 1.0
-      opticalUnis.uDeflect.value = p.deflect
 
       for (const m of fogMats) {
         applyShared(m.uniforms as unknown as Record<string, { value: unknown }>)
@@ -457,18 +435,12 @@ export default function VisualSystemCanvas({
       spaceMesh.visible = showSpace
       for (const m of fogMeshes) m.visible = showFog
       mainPoints.visible = showSplat
-      optPoints.visible = showSplat && v === 'composite'
       const lf = layerOnly !== undefined ? layerOnly : -1
       splatUnis.uLayerFilter.value = lf
-      opticalUnis.uLayerFilter.value = lf
       splatUnis.uSplatAniso.value = p.splatAniso
-      opticalUnis.uSplatAniso.value = p.splatAniso
       splatUnis.uSheetBind.value = p.sheetBind
-      opticalUnis.uSheetBind.value = p.sheetBind
       splatUnis.uLightZ.value = p.lightZ
-      opticalUnis.uLightZ.value = p.lightZ
       splatUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
-      opticalUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
 
       if (contextLost) return
       renderer.render(scene, camera)
@@ -492,7 +464,7 @@ export default function VisualSystemCanvas({
       buffers?.main.dispose(); buffers?.optical.dispose()
       fogGeo.dispose(); fogMats.forEach(m => m.dispose()); mask.dispose()
       spaceMesh.geometry.dispose(); spaceMat.dispose()
-      splatMat.dispose(); opticalMat.dispose()
+      splatMat.dispose()
       renderer.dispose()
     }
   }, [pointer])

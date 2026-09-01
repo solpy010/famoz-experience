@@ -8,7 +8,6 @@ import PublicValue from '@/components/PublicValue'
 import WorksFilm from '@/components/WorksFilm'
 import MascotScene from '@/components/MascotScene'
 import EndingScene from '@/components/EndingScene'
-import ParallaxSystem from '@/components/ParallaxSystem'
 import SectionBackdrop from '@/components/SectionBackdrop'
 import VisualSystemCanvas, { type VisualStats } from '@/components/visual/VisualSystemCanvas'
 import PerfOverlay from '@/components/visual/PerfOverlay'
@@ -90,8 +89,6 @@ export default function Home() {
           onStats={(s) => { statsRef.current = s }}
         />
       </VisualErrorBoundary>
-      <ParallaxSystem />
-
       {!introComplete && <IntroSequence onEntered={handleEntered} />}
 
       <HeroScene introComplete={introComplete} />
