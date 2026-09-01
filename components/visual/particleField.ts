@@ -94,7 +94,10 @@ function brightness(r: number): number {
  * 시트 비중이 과반을 넘으면 입자가 한 덩어리 표면으로 붙어 점막처럼 읽힌다.
  * Hero에서는 통로와 후경을 함께 살려 면보다 방향과 깊이가 먼저 보이게 한다.
  */
-const ROLE_MIX = [0.44, 0.34, 0.17, 0.05]
+/* 진단 결과 중경이 화면 대부분을 점유해 깊이가 한 층처럼 보였다.
+   sheet/corridor의 중심 흐름은 유지하면서 후경 통로와 소수 전경의 시차를
+   실제 수량으로 확보한다. near는 전체의 8%라 보케 벽이 되지 않는다. */
+const ROLE_MIX = [0.38, 0.34, 0.20, 0.08]
 
 /** 월드 좌표 → 화면비 보정 화면 좌표. 셰이더의 p와 같은 공간. */
 function toScreen(x: number, y: number, z: number, cam: CamInfo) {

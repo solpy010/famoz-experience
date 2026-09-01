@@ -254,12 +254,14 @@ export const splatVert = /* glsl */`
     float vDist = step(9.5, uView);
     /* E: 깊이 진단색 — far blue / mid green / near amber. 진단 화면에서
        색만 보고도 세 층의 분포·크기·속도를 구별할 수 있어야 한다. */
-    vec3 depthCol = isFar * vec3(0.22, 0.48, 1.00)
-                  + isMid * vec3(0.22, 0.96, 0.64)
-                  + isNear * vec3(1.00, 0.66, 0.20);
+    vec3 depthCol = isFar * vec3(0.30, 0.56, 1.00)
+                  + isMid * vec3(0.20, 0.78, 0.55)
+                  + isNear * vec3(1.00, 0.70, 0.24);
     color = mix(color, depthCol, vDist);
     a     = mix(a, max(a * 2.0, 0.48), vDist);
-    vAniso = mix(vAniso, isMid > 0.5 ? 2.0 : 1.35, vDist);
+    /* 진단 모드의 짧은 dash는 별도 벡터 장식이 아니라 실제 입자의 긴 축이다.
+       세 층이 서로 다른 길이를 가져 방향과 원근을 한 프레임에서도 판독한다. */
+    vAniso = mix(vAniso, isFar * 1.35 + isMid * 2.55 + isNear * 1.70, vDist);
     color = mix(color, vec3(clamp(exposure * 3.0, 0.0, 1.0), 0.12, 0.55), vVel);
     /* 마스크 뷰: Core = 적색, Soft = 청색, 둘 다 = 자홍, 자유 = 어두움 */
     color = mix(color, vec3(core, 0.10, soft * 0.95), vMask);
@@ -269,7 +271,8 @@ export const splatVert = /* glsl */`
 
     vColor = color;
     vAlpha = a;
-    gl_PointSize = clamp(sz, lo, hi);
+    float diagnosticSize = isFar * 1.65 + isMid * 2.65 + isNear * 4.15;
+    gl_PointSize = mix(clamp(sz, lo, hi), diagnosticSize * uDPR, vDist);
     gl_Position  = clip;
   }
 `
