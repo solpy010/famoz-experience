@@ -34,7 +34,7 @@ function tierScale(tier: 0 | 1 | 2 | 3): number {
 
 export type VisualStats = {
   fps: number; points: number; coverage: number; tier: number
-  dpr: number; frameMs: number
+  dpr: number; frameMs: number; gpuMs: number; longFrames: number
   drawCalls: number; geometries: number; textures: number; programs: number
 }
 
@@ -90,6 +90,11 @@ export default function VisualSystemCanvas({
     renderer.setPixelRatio(dpr)
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setClearColor(0x000000, 0)
+    const diagnostic = new URLSearchParams(window.location.search).has('diagnostic')
+    const gl = renderer.getContext() as WebGL2RenderingContext
+    const timerExt = diagnostic ? gl.getExtension('EXT_disjoint_timer_query_webgl2') : null
+    const gpuQueries: WebGLQuery[] = []
+    let gpuMs = -1
 
     /* 실행 중 컨텍스트를 잃는 경우(탭 장시간 방치, GPU 리셋)도 페이지를
        죽이지 않고 루프만 멈춘다. */
@@ -319,10 +324,11 @@ export default function VisualSystemCanvas({
     /* ── RAF ──────────────────────────────────────────── */
     let raf = 0, time = 0, last = performance.now(), frames = 0, fpsT = 0, fps = 0
     let lastStats: VisualStats = {
-      fps: 0, points: 0, coverage: 0, tier, dpr, frameMs: 0,
+      fps: 0, points: 0, coverage: 0, tier, dpr, frameMs: 0, gpuMs: -1, longFrames: 0,
       drawCalls: 0, geometries: 0, textures: 0, programs: 0,
     }
     let wasActive = activeRef.current
+    let longFrames = 0
     const v3 = (t: THREE.Vector3, s: [number, number, number]) => t.set(s[0], s[1], s[2])
 
     const frame = () => {
@@ -346,6 +352,7 @@ export default function VisualSystemCanvas({
       wasActive = true
 
       time += dt; frames++; fpsT += dt
+      if (dt * 1000 > 24) longFrames++
       if (fpsT >= 0.5) { fps = frames / fpsT; frames = 0; fpsT = 0 }
       if (visualEvents.rebuild !== lastRebuild) { lastRebuild = visualEvents.rebuild; rebuild() }
 
@@ -443,11 +450,30 @@ export default function VisualSystemCanvas({
       splatUnis.uLightOrigin.value.set(p.lightOrigin[0], p.lightOrigin[1])
 
       if (contextLost) return
+      let gpuQuery: WebGLQuery | null = null
+      if (timerExt) {
+        gpuQuery = gl.createQuery()
+        if (gpuQuery) gl.beginQuery(timerExt.TIME_ELAPSED_EXT, gpuQuery)
+      }
       renderer.render(scene, camera)
+      if (gpuQuery && timerExt) {
+        gl.endQuery(timerExt.TIME_ELAPSED_EXT)
+        gpuQueries.push(gpuQuery)
+      }
+      if (timerExt && gpuQueries.length > 2) {
+        const q = gpuQueries[0]
+        const ready = gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)
+        const disjoint = gl.getParameter(timerExt.GPU_DISJOINT_EXT)
+        if (ready) {
+          if (!disjoint) gpuMs = gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6
+          gl.deleteQuery(q)
+          gpuQueries.shift()
+        }
+      }
       const info = renderer.info
       lastStats = {
         fps, points: stats.points, coverage: stats.coverage, tier,
-        dpr, frameMs: dt * 1000,
+        dpr, frameMs: dt * 1000, gpuMs, longFrames,
         drawCalls: info.render.calls,
         geometries: info.memory.geometries,
         textures: info.memory.textures,
@@ -466,6 +492,7 @@ export default function VisualSystemCanvas({
       spaceMesh.geometry.dispose(); spaceMat.dispose()
       splatMat.dispose()
       renderer.dispose()
+      gpuQueries.forEach(q => gl.deleteQuery(q))
     }
   }, [pointer])
 

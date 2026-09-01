@@ -24,7 +24,10 @@ const CHARACTER   = '/mascot/robot.png'
 
 export default function VisualLab() {
   const pointer = useMemo(() => new PointerField(), [])
-  const [stats, setStats] = useState({ fps: 0, points: 0, coverage: 0, tier: 3 })
+  const [stats, setStats] = useState({
+    fps: 0, points: 0, coverage: 0, tier: 3, dpr: 0, frameMs: 0,
+    gpuMs: -1, longFrames: 0, drawCalls: 0, geometries: 0, textures: 0, programs: 0,
+  })
   const statRef = useRef(stats)
 
   useEffect(() => pointer.attach(window), [pointer])
@@ -140,11 +143,44 @@ export default function VisualLab() {
         <span>{stats.points.toLocaleString()} pts</span>
         <span>coverage {(stats.coverage * 100).toFixed(0)}%</span>
         <span>tier {stats.tier}</span>
+        <span>DPR {stats.dpr.toFixed(2)}</span>
+        <span>{stats.frameMs.toFixed(1)} ms</span>
+        <span>GPU {stats.gpuMs < 0 ? 'n/a' : `${stats.gpuMs.toFixed(2)} ms`}</span>
+        <span>{stats.drawCalls} draw</span>
+        <span>{stats.longFrames} long</span>
       </div>
+
+      {view === 'dist' && <DiagnosticField pointer={pointer} />}
 
       <div id="lab-debug" data-view="composite" data-panel="on" hidden />
       {panel && <DebugPanel />}
     </main>
+  )
+}
+
+function DiagnosticField({ pointer }: { pointer: PointerField }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let raf = 0
+    const tick = () => {
+      raf = requestAnimationFrame(tick)
+      const el = ref.current
+      if (!el) return
+      el.style.setProperty('--px', `${(pointer.smooth.x / 9 + .5) * 100}%`)
+      el.style.setProperty('--py', `${(-pointer.smooth.y / 5 + .5) * 100}%`)
+      el.style.setProperty('--rot', `${Math.atan2(-pointer.smoothVelocity.y, pointer.smoothVelocity.x)}rad`)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [pointer])
+  return (
+    <div ref={ref} className="diagnostic-field" aria-hidden="true">
+      <div className="diagnostic-radius" />
+      <div className="diagnostic-key">
+        <span className="far">후경</span><span className="mid">중경</span><span className="near">전경</span>
+        <small>점의 긴 축 = 유동 방향 · 타원 = 포인터 영향장</small>
+      </div>
+    </div>
   )
 }
 
@@ -160,6 +196,12 @@ const LAB_CSS = `
     radial-gradient(ellipse 96% 50% at 56% 54%, #171C22 0%, transparent 62%),
     radial-gradient(ellipse 130% 98% at 48% 46%, #13101A 0%, #0D0B12 74%, #08070C 100%);
 }
+.diagnostic-field { position:fixed; inset:0; z-index:29; pointer-events:none; --px:50%; --py:50%; --rot:0rad; }
+.diagnostic-radius { position:absolute; left:var(--px); top:var(--py); width:26vw; height:16vw; max-height:26vh; transform:translate(-50%,-50%) rotate(var(--rot)); border:1px dashed rgba(255,255,255,.5); border-radius:50%; background:rgba(255,255,255,.018); }
+.diagnostic-key { position:absolute; left:20px; bottom:20px; display:flex; align-items:center; gap:12px; padding:10px 12px; color:#eef3ff; background:rgba(4,7,14,.78); border:1px solid rgba(255,255,255,.16); font:11px/1.4 ui-monospace,monospace; }
+.diagnostic-key span::before { content:''; display:inline-block; width:8px; height:8px; margin-right:5px; border-radius:50%; background:currentColor; }
+.diagnostic-key .far { color:#387aff; }.diagnostic-key .mid { color:#38f5a3; }.diagnostic-key .near { color:#ffa833; }
+.diagnostic-key small { opacity:.62; }
 
 /* ── z 20 콘텐츠 ─────────────────────────────────────── */
 .visual-content {

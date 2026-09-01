@@ -15,6 +15,7 @@ export type PerfSample = VisualStats & { canvasCount: number; rafCount: number }
 
 const empty: PerfSample = {
   fps: 0, points: 0, coverage: 0, tier: 0, dpr: 0, frameMs: 0,
+  gpuMs: -1, longFrames: 0,
   drawCalls: 0, geometries: 0, textures: 0, programs: 0,
   canvasCount: 0, rafCount: 0,
 }
@@ -119,6 +120,8 @@ export default function PerfOverlay({
     }}>
       {row('fps', live.fps.toFixed(0))}
       {row('frame ms', live.frameMs.toFixed(1))}
+      {row('gpu ms', live.gpuMs < 0 ? 'n/a' : live.gpuMs.toFixed(2))}
+      {row('long frames', live.longFrames)}
       {row('dpr', live.dpr.toFixed(2))}
       {row('particles', live.points.toLocaleString())}
       {row('draw calls', live.drawCalls)}

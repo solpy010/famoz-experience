@@ -112,18 +112,18 @@ export const DEFAULT_PARAMS: VisualParams = {
   coreOcclusion: 1.0,
   deflect: 0.28,
 
-  count: 11_000,
-  microRatio: 0.78,
-  mediumRatio: 0.19,
+  count: 14_000,
+  microRatio: 0.66,
+  mediumRatio: 0.30,
   largeRatio: 0.03,
-  sizeScale: 0.72,
+  sizeScale: 0.88,
   gaussianSoftness: 1.12,
-  opacity: 0.96,
+  opacity: 1.0,
   reflectance: 0.76,
   additiveRatio: 0,
 
   baseCurlScale: 0.26,
-  baseCurlStrength: 0.085,
+  baseCurlStrength: 0.12,
   pointerSmoothing: 0.028,
   velocitySmoothing: 0.09,
   pointerRadius: 0.12,
@@ -173,7 +173,7 @@ export const DEFAULT_PARAMS: VisualParams = {
   sheetBind: 0.12,
   coolCol: [0.440, 0.610, 0.820],
 
-  splatAniso: 0.22,
+  splatAniso: 0.55,
   nearRatio: 0.025,
 
   view: 'composite',

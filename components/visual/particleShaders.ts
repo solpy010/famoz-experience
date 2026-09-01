@@ -157,13 +157,20 @@ export const splatVert = /* glsl */`
     float tau   = isMicro*uTauMicro   + isMedium*uTauMedium   + isLarge*uTauLarge;
 
     /* 기본 대기 흐름 — 포인터가 있어도 덮어쓰지 않는다 (§11) */
-    float speed = 0.035 + depth * 0.075;
-    float travel = uTime * speed;
+    /* 눈으로 판독 가능한 세 개의 깊이 속도. 이전 값(0.035~0.11)은 한 화면을
+       가로지르는 데 수분이 걸려 정지 별가루처럼 보였다. 속도를 올리되 seed별
+       위상과 깊이별 차이를 둬 전 화면이 한 장처럼 미끄러지지 않게 한다. */
+    float speed = isFar * 0.10 + isMid * 0.22 + isNear * 0.38;
+    float direction = step(1.5, aRole) > 0.5 ? -1.0 : 1.0;
+    float travel = uTime * speed * direction;
     vec3 pos = origin;
     pos.x = mod(origin.x + uSpan.x + travel + sin(origin.y * 1.4 + aSeed * 6.283) * .08, uSpan.x * 2.0) - uSpan.x;
-    float wave = sin(pos.x * .72 + origin.y * 1.18 + uTime * (.10 + depth * .04) + aSeed * 3.2);
-    vec3 baseFlow = vec3(1.0, wave * .62, cos(wave + aSeed * 5.1) * .18) * uBaseCurlStrength;
-    pos.y += wave * (.035 + depth * .075);
+    float phase = pos.x * (0.62 + aRole * .11) + origin.y * .74 + aSeed * 1.9;
+    float wave = sin(phase + uTime * (.12 + depth * .07));
+    float lane = sin(pos.x * .34 + aRole * 1.73) * (.10 + isMid * .09);
+    vec3 baseFlow = vec3(direction, wave * .38 + cos(phase * .47) * .16,
+                         cos(phase + aSeed * 3.1) * .12) * uBaseCurlStrength;
+    pos.y += lane + wave * (.045 + depth * .10);
 
     float exposure;
     pos.xy += strokeForce(pos.xy, lag, fsc, tau, exposure) * (0.55 + depth * 0.85);
@@ -190,10 +197,10 @@ export const splatVert = /* glsl */`
     /* 깊이마다 독립된 색온도를 갖게 해 전체가 보라 안개로 섞이지 않게 한다. */
     float luma2 = dot(color, vec3(0.2126, 0.7152, 0.0722));
     color = mix(color, vec3(luma2), isFar * 0.10);
-    color = mix(color, vec3(0.16, 0.40, 0.95), isFar * 0.28);
-    color = mix(color, vec3(0.56, 0.38, 1.00), isMid * smoothstep(0.18, 0.92, lit) * 0.24);
-    color = mix(color, vec3(0.48, 0.92, 1.00), isNear * 0.32);
-    color *= isFar * 0.70 + isMid * 1.18 + isNear * 0.88;
+    color = mix(color, vec3(0.20, 0.43, 0.90), isFar * 0.34);
+    color = mix(color, vec3(0.63, 0.51, 0.96), isMid * smoothstep(0.12, 0.92, lit) * 0.34);
+    color = mix(color, vec3(0.63, 0.88, 1.00), isNear * 0.38);
+    color *= isFar * 0.82 + isMid * 1.34 + isNear * 1.02;
     /* mid는 광원에 닿은 일부만 선명해진다 */
     color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
 
@@ -204,8 +211,9 @@ export const splatVert = /* glsl */`
 
     /* 밀도를 제곱으로 실어 고밀도 cluster만 드러나게 한다. 선형이면 성긴
        영역까지 같이 올라와 화면 전체가 균일한 점묘가 된다. */
-    float a = uOpacity * (0.34 + aBright * 0.66)
-            * (0.42 + aDensity * aDensity * 0.78) * (0.58 + depth * 0.42)
+    float ridge = smoothstep(0.38, 0.82, aDensity);
+    float a = uOpacity * (0.42 + aBright * 0.58)
+            * (0.48 + ridge * 0.82) * (0.62 + depth * 0.38)
             /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
             * (1.0 - isFar * 0.24);
     a *= 1.0 - uContentSuppress * brightW * soft;
@@ -223,14 +231,14 @@ export const splatVert = /* glsl */`
        원형만 반복하지 않는다. mid의 절반은 흐름 방향으로 늘어난 타원형이라
        흐름 방향을 판독할 수 있다 (지시서 §5). */
     vAngle = atan(baseFlow.y, baseFlow.x + 1e-5);
-    vAniso = 1.0 + uSplatAniso * isMid * step(aSeed, 0.62)
-                 * (0.5 + aDensity * 0.5);
+    vAniso = 1.0 + (0.35 + uSplatAniso) * isMid * step(aSeed, 0.38)
+                 * (0.55 + aDensity * 0.65);
 
-    float baseSize = isMicro * 1.35 + isMedium * 3.8 + isLarge * 10.0;
+    float baseSize = isMicro * 1.85 + isMedium * 4.6 + isLarge * 9.0;
     float sz = uSizeScale * baseSize * uDPR * (1.5 / max(-mv.z, 0.4))
              * (0.45 + depth * 0.75) * (0.72 + lit * 1.1);
-    float lo = isMicro * 1.0 + isMedium * 2.2 + isLarge * 5.0;
-    float hi = isMicro * 2.3 + isMedium * 5.4 + isLarge * 10.0;
+    float lo = isMicro * 1.25 + isMedium * 2.8 + isLarge * 5.0;
+    float hi = isMicro * 2.6 + isMedium * 6.2 + isLarge * 10.0;
 
     /* large는 점이 아니라 흐릿한 공간면으로 읽혀야 한다 (지시서 §4).
        흐림은 falloff를 눕혀서가 아니라 **크기**로 얻는다.
@@ -245,13 +253,14 @@ export const splatVert = /* glsl */`
     float vMask = step(7.5, uView) * step(uView, 8.5);
     float vVel  = step(8.5, uView) * step(uView, 9.5);
     float vDist = step(9.5, uView);
-    /* E: 역할별 색 — sheet 라벤더 / corridor 청록 / far 회청 / near 앰버 */
-    vec3 roleCol = step(aRole, 0.5) * vec3(0.68, 0.55, 0.86)
-                 + step(0.5, aRole) * step(aRole, 1.5) * vec3(0.30, 0.72, 0.70)
-                 + step(1.5, aRole) * step(aRole, 2.5) * vec3(0.36, 0.44, 0.56)
-                 + step(2.5, aRole) * vec3(0.88, 0.62, 0.34);
-    color = mix(color, roleCol, vDist);
-    a     = mix(a, max(a * 2.2, 0.28), vDist);
+    /* E: 깊이 진단색 — far blue / mid green / near amber. 진단 화면에서
+       색만 보고도 세 층의 분포·크기·속도를 구별할 수 있어야 한다. */
+    vec3 depthCol = isFar * vec3(0.22, 0.48, 1.00)
+                  + isMid * vec3(0.22, 0.96, 0.64)
+                  + isNear * vec3(1.00, 0.66, 0.20);
+    color = mix(color, depthCol, vDist);
+    a     = mix(a, max(a * 2.0, 0.48), vDist);
+    vAniso = mix(vAniso, isMid > 0.5 ? 2.0 : 1.35, vDist);
     color = mix(color, vec3(clamp(exposure * 3.0, 0.0, 1.0), 0.12, 0.55), vVel);
     /* 마스크 뷰: Core = 적색, Soft = 청색, 둘 다 = 자홍, 자유 = 어두움 */
     color = mix(color, vec3(core, 0.10, soft * 0.95), vMask);

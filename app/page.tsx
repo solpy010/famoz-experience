@@ -36,6 +36,7 @@ export default function Home() {
   const pointer = useMemo(() => new PointerField(), [])
   const statsRef = useRef<VisualStats>({
     fps: 0, points: 0, coverage: 0, tier: 0, dpr: 0, frameMs: 0,
+    gpuMs: -1, longFrames: 0,
     drawCalls: 0, geometries: 0, textures: 0, programs: 0,
   })
 
