@@ -151,6 +151,9 @@ export const splatVert = /* glsl */`
     float isMicro  = step(aClass, 0.5);
     float isLarge  = step(1.5, aClass);
     float isMedium = 1.0 - isMicro - isLarge;
+    float isFar  = step(aBand, 0.5);
+    float isNear = step(1.5, aBand);
+    float isMid  = 1.0 - isFar - isNear;
 
     float lag   = isMicro*uLagMicro   + isMedium*uLagMedium   + isLarge*uLagLarge;
     float fsc   = isMicro*uForceMicro + isMedium*uForceMedium + isLarge*uForceLarge;
@@ -184,10 +187,6 @@ export const splatVert = /* glsl */`
 
     /* ── 깊이 레이어별 초점 분리 (지시서 §4) ──────────────────
        부드러움을 전체 blur로 만들지 않는다. 레이어마다 대비·채도·초점이 다르다. */
-    float isFar  = step(aBand, 0.5);
-    float isNear = step(1.5, aBand);
-    float isMid  = 1.0 - isFar - isNear;
-
     /* ── 조명 ── */
     /* 흐름이 갈라진 만큼 후경광이 드러난다. 상한을 둬 동시에 번쩍이지 않게. */
     float reveal = 1.0 + clamp(exposure * uExposure, 0.0, uRevealCap);

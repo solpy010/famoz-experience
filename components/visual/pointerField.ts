@@ -45,6 +45,9 @@ export class PointerField {
   private clock = 0
   private seeded = false
   private lastMoveT = -99
+  private pendingX = 0
+  private pendingY = 0
+  private hasPending = false
 
   /** 스트로크 점 사이 최소 시간 간격(초). MAX_STROKE와 곱하면 wake 길이가 된다. */
   private static readonly STROKE_INTERVAL = 0.18
@@ -59,20 +62,12 @@ export class PointerField {
 
   attach(target: Window | HTMLElement = window): () => void {
     const onMove = (e: PointerEvent) => {
-      this.ndc.set(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        -((e.clientY / window.innerHeight) * 2 - 1),
-      )
-      this.raw.set(this.ndc.x * this.halfH * this.aspect, this.ndc.y * this.halfH)
-      /* 오래 쉰 뒤에는 smooth가 낡은 raw를 향해 멀리 흘러가 있다. 그대로 두면
-         복귀 첫 프레임에 큰 속도가 튀어 흐름이 폭발한다. 스냅해서 시작한다. */
-      if (!this.seeded || this.idleTime > 0.5) {
-        this.smooth.copy(this.raw)
-        this.previous.copy(this.raw)
-        this.smoothVelocity.set(0, 0)
-        this.seeded = true
-      }
-      this.lastMoveT = this.clock
+      /* 고주사율 마우스는 한 프레임 사이에 수십 이벤트를 보낸다. 이벤트에서는
+         숫자 두 개만 덮어쓰고, NDC 변환·seed·속도 처리는 update()에서 프레임당
+         한 번 수행한다. DOM 입력 속도와 WebGL 루프가 경쟁하지 않게 한다. */
+      this.pendingX = e.clientX
+      this.pendingY = e.clientY
+      this.hasPending = true
     }
     const t = target as Window
     t.addEventListener('pointermove', onMove as EventListener, { passive: true })
@@ -82,6 +77,22 @@ export class PointerField {
   update(dt: number) {
     const p = visualParams
     this.clock += dt
+
+    if (this.hasPending) {
+      this.hasPending = false
+      this.ndc.set(
+        (this.pendingX / window.innerWidth) * 2 - 1,
+        -((this.pendingY / window.innerHeight) * 2 - 1),
+      )
+      this.raw.set(this.ndc.x * this.halfH * this.aspect, this.ndc.y * this.halfH)
+      if (!this.seeded || this.idleTime > 0.5) {
+        this.smooth.copy(this.raw)
+        this.previous.copy(this.raw)
+        this.smoothVelocity.set(0, 0)
+        this.seeded = true
+      }
+      this.lastMoveT = this.clock
+    }
 
     /* 모든 감쇠·평활 계수는 60fps 기준으로 정규화한다. 그렇지 않으면 문서가
        초 단위로 지정한 wake persistence·복귀 시간이 프레임레이트에 따라 달라진다. */
