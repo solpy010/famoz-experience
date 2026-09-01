@@ -104,10 +104,24 @@ function useIsMobile() {
   return mobile
 }
 
+function useIsTablet() {
+  const [tablet, setTablet] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px) and (max-width: 1100px)')
+    setTablet(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setTablet(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return tablet
+}
+
 export default function WorksFilm() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scrollVH, setScrollVH] = useState(0)
   const isMobile = useIsMobile()
+  const isTablet = useIsTablet()
+  const infoHeight = isMobile ? '40%' : isTablet ? '34%' : '31%'
 
   useEffect(() => {
     const onScroll = () => {
@@ -150,17 +164,14 @@ export default function WorksFilm() {
     <div
       ref={containerRef}
       id="works"
-      style={{ position: 'relative', height: `${TOTAL_VH}vh`, background: '#07101f' }}
+      style={{ position: 'relative', height: `${TOTAL_VH}vh`, background: 'transparent' }}
     >
       <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden' }}>
 
         {/* ── Image display area ── */}
-        {/* Desktop: bottom 28% reserved for text. Mobile: bottom 38% (more text lines) */}
         <div style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0,
-          bottom: isMobile ? '38%' : '28%',
-          background: `#07101f`,
+          position: 'absolute', inset: 0,
+          background: '#07101f',
           overflow: 'hidden',
         }}>
           {/* Project-tinted background wash */}
@@ -186,12 +197,11 @@ export default function WorksFilm() {
               else if (prevProject) opacity = 1 - entryBlend
               else if (isPrev) opacity = 0
 
-              // Determine display mode per project + viewport
-              const useContain = !isMobile || proj.alwaysContain
-              const fit = useContain ? 'contain' : 'cover'
-              const pos = useContain
-                ? 'center center'
-                : (proj.mobilePosition ?? 'center center')
+              // 모든 화면을 채우되 원본 비율은 유지한다. 모바일·태블릿은
+              // 프로젝트별 핵심 초점 위치를 스냅 기준으로 사용한다.
+              const pos = (isMobile || isTablet)
+                ? (proj.mobilePosition ?? 'center center')
+                : 'center center'
 
               return (
                 <img
@@ -201,10 +211,9 @@ export default function WorksFilm() {
                   style={{
                     position: 'absolute', inset: 0,
                     width: '100%', height: '100%',
-                    objectFit: fit,
+                    objectFit: 'cover',
                     objectPosition: pos,
-                    // contain 모드에서만 padding으로 여백 확보
-                    padding: useContain ? 'clamp(0.75rem, 1.5vw, 2rem)' : '0',
+                    padding: 0,
                     opacity,
                     transition: isActive || isNext ? `opacity 0.8s ${EASE}` : 'none',
                     willChange: 'opacity',
@@ -215,24 +224,28 @@ export default function WorksFilm() {
           )}
         </div>
 
+        {/* 이미지의 상·하단을 어두운 공간으로 연결한다. 검은 박스를 추가하지
+            않고 이미지 위의 연속 음영으로 텍스트·태그·진행 바를 보호한다. */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none',
+          background: `
+            linear-gradient(180deg, rgba(3,7,17,.86) 0%, rgba(3,7,17,.24) 18%, transparent 38%),
+            linear-gradient(0deg, rgba(3,7,17,.98) 0%, rgba(4,9,22,.88) ${infoHeight}, rgba(4,9,22,.30) 54%, transparent 72%)
+          `,
+        }} />
+
         {/* Separator line between image and info */}
         <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: isMobile ? '38%' : '28%',
+          position: 'absolute', left: 0, right: 0, bottom: infoHeight,
+          zIndex: 5,
           height: '1px',
           background: `linear-gradient(90deg, transparent, ${project.accent}40, transparent)`,
           transition: `background 0.8s ${EASE}`,
         }} />
 
-        {/* Text info area background */}
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: isMobile ? '38%' : '28%',
-          background: '#07101f',
-          zIndex: 'var(--z-haze)',
-        }} />
-
         {/* ── Section header (visible only in header zone) ── */}
         <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: '28%', zIndex: 'var(--z-media)',
+          position: 'absolute', inset: 0, zIndex: 'var(--z-media)',
           display: 'flex', alignItems: 'flex-end',
           padding: 'var(--section-gap) var(--gutter) clamp(2rem,4vh,3rem)',
           opacity: inHeader ? 1 : 0,
@@ -257,7 +270,7 @@ export default function WorksFilm() {
         {/* ── Project info overlay ── */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: isMobile ? '38%' : '28%', zIndex: 'var(--z-media)',
+          minHeight: infoHeight, zIndex: 'var(--z-media)',
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
           padding: '0 var(--gutter)',
           opacity: inHeader ? 0 : 1,

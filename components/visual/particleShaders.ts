@@ -361,6 +361,56 @@ export const splatFrag = /* glsl */`
   }
 `
 
+/* ── 저비용 후경 밀도면 ──────────────────────────────────────
+   주 입자와 별도 세계를 만들지 않는다. 같은 journey uniforms를 사용하지만
+   포인터 선분·마스크·조직화 계산은 하지 않아 18k 입자를 매우 낮은 비용으로
+   추가한다. 이미지와 텍스트보다 뒤에서 공간의 공기와 광산란만 담당한다. */
+export const backgroundVert = /* glsl */`
+  uniform float uTime, uDPR, uJourneyYaw, uJourneyZoom, uJourneyDensity;
+  uniform vec2 uSpan, uJourneyOffset, uJourneyFlow;
+  uniform vec3 uJourneyColor, uMainColor, uSideColor;
+  attribute float aSeed;
+  varying vec3 vColor;
+  varying float vAlpha;
+  void main(){
+    vec3 pos = position;
+    float speed = 0.055 + fract(aSeed * 7.31) * 0.045;
+    float travel = uTime * speed;
+    pos.x = mod(pos.x + uSpan.x + travel, uSpan.x * 2.0) - uSpan.x;
+    float lane = sin(pos.x * (0.42 + aSeed * .18) + aSeed * 6.283);
+    pos.y += lane * (.12 + fract(aSeed * 3.7) * .14);
+    pos.z += cos(pos.x * .31 + aSeed * 9.1) * .12;
+
+    float depth = clamp((pos.z + 3.2) / 1.8, 0.0, 1.0);
+    float jy = uJourneyYaw * (0.58 + depth * .18);
+    mat2 rot = mat2(cos(jy), -sin(jy), sin(jy), cos(jy));
+    pos.xz = rot * pos.xz;
+    pos.xy = pos.xy / uJourneyZoom + uJourneyOffset * .72;
+    pos.xy += uJourneyFlow * travel * .16;
+
+    vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+    gl_Position = projectionMatrix * mv;
+    /* 기존 주 입자보다 화면상 약 1 CSS px 큰 후경 입자. 밝기는 낮게 유지한다. */
+    gl_PointSize = (3.25 + depth * .65) * uDPR;
+    float lightBand = .36 + .34 * smoothstep(-.8, .9, lane);
+    vec3 scatter = mix(uMainColor, uSideColor, fract(aSeed * 5.13));
+    vColor = scatter * mix(vec3(1.0), uJourneyColor, .52) * lightBand;
+    vAlpha = (.10 + fract(aSeed * 11.7) * .14) * uJourneyDensity;
+  }
+`
+
+export const backgroundFrag = /* glsl */`
+  varying vec3 vColor;
+  varying float vAlpha;
+  void main(){
+    vec2 q = gl_PointCoord - .5;
+    float d2 = dot(q,q);
+    if (d2 > .25) discard;
+    float a = exp(-d2 * 11.0) * vAlpha;
+    gl_FragColor = vec4(vColor * a, a);
+  }
+`
+
 /* ════════════════════════════════════════════════════════════
    L3 — Fog / Atmospheric Density
    스모그는 파티클과 같은 velocity field를 쓰되 더 느리게 반응하고

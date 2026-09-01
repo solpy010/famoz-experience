@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { detectTier } from '../sceneStore'
 import { visualParams, visualEvents, LAYER_RESPONSE, VIEW_INDEX, LAYER_FILTER } from './visualParams'
 import { buildSplatField, type Span, type SplatBuffers } from './particleField'
-import { splatVert, splatFrag, fogVert, fogFrag } from './particleShaders'
+import { splatVert, splatFrag, backgroundVert, backgroundFrag, fogVert, fogFrag } from './particleShaders'
 import { MaskField } from './maskField'
 import { spaceVert, spaceFrag } from './spaceFieldShader'
 import type { PointerField } from './pointerField'
@@ -197,6 +197,23 @@ export default function VisualSystemCanvas({
       transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     })
 
+    const backgroundUnis = {
+      uTime: { value: 0 }, uDPR: { value: dpr },
+      uSpan: { value: new THREE.Vector2(span.x, span.y) },
+      uJourneyOffset: { value: new THREE.Vector2() },
+      uJourneyFlow: { value: new THREE.Vector2(1, 0) },
+      uJourneyColor: { value: new THREE.Vector3(1, 1, 1) },
+      uJourneyYaw: { value: 0 }, uJourneyZoom: { value: 1 },
+      uJourneyDensity: { value: 1 },
+      uMainColor: { value: new THREE.Vector3(...visualParams.mainLightColor) },
+      uSideColor: { value: new THREE.Vector3(...visualParams.sideLightColor) },
+    }
+    const backgroundMat = new THREE.ShaderMaterial({
+      vertexShader: backgroundVert, fragmentShader: backgroundFrag,
+      uniforms: backgroundUnis, transparent: true, depthWrite: false,
+      depthTest: false, blending: THREE.NormalBlending,
+    })
+
     /* ── 지오메트리 ───────────────────────────────────── */
     const camInfo = {
       z: CAM_Z, aspect: camera.aspect,
@@ -206,6 +223,23 @@ export default function VisualSystemCanvas({
     const mainPoints = new THREE.Points(new THREE.BufferGeometry(), splatMat)
     mainPoints.frustumCulled = false
     scene.add(mainPoints)
+
+    const backgroundCount = Math.round(18_000 * tierScale(tier))
+    const backgroundGeo = new THREE.BufferGeometry()
+    const backgroundPos = new Float32Array(backgroundCount * 3)
+    const backgroundSeed = new Float32Array(backgroundCount)
+    for (let i = 0; i < backgroundCount; i++) {
+      backgroundPos[i * 3] = (Math.random() * 2 - 1) * span.x
+      backgroundPos[i * 3 + 1] = (Math.random() * 2 - 1) * span.y
+      backgroundPos[i * 3 + 2] = -3.15 + Math.random() * 1.25
+      backgroundSeed[i] = Math.random()
+    }
+    backgroundGeo.setAttribute('position', new THREE.BufferAttribute(backgroundPos, 3))
+    backgroundGeo.setAttribute('aSeed', new THREE.BufferAttribute(backgroundSeed, 1))
+    const backgroundPoints = new THREE.Points(backgroundGeo, backgroundMat)
+    backgroundPoints.frustumCulled = false
+    backgroundPoints.renderOrder = -0.5
+    scene.add(backgroundPoints)
 
     let stats = { points: 0, coverage: 0 }
     const rebuild = () => {
@@ -328,6 +362,7 @@ export default function VisualSystemCanvas({
       splatUnis.uAspect.value = camera.aspect
       span = computeSpan(camera)
       splatUnis.uSpan.value.set(span.x, span.y)
+      backgroundUnis.uSpan.value.set(span.x, span.y)
       pointer.setView(Math.tan((FOV * Math.PI / 180) * 0.5) * (CAM_Z - Z_MID), camera.aspect)
       sizeFog()
       syncMask()
@@ -436,6 +471,20 @@ export default function VisualSystemCanvas({
       }
 
       applyShared(splatUnis as unknown as Record<string, { value: unknown }>)
+      backgroundUnis.uTime.value = time
+      backgroundUnis.uJourneyOffset.value.set(
+        lerp(ja.off[0], jb.off[0], sceneT), lerp(ja.off[1], jb.off[1], sceneT))
+      backgroundUnis.uJourneyFlow.value.set(
+        lerp(ja.flow[0], jb.flow[0], sceneT), lerp(ja.flow[1], jb.flow[1], sceneT)).normalize()
+      backgroundUnis.uJourneyColor.value.set(
+        lerp(ja.color[0], jb.color[0], sceneT),
+        lerp(ja.color[1], jb.color[1], sceneT),
+        lerp(ja.color[2], jb.color[2], sceneT))
+      backgroundUnis.uJourneyYaw.value = lerp(ja.yaw, jb.yaw, sceneT)
+      backgroundUnis.uJourneyZoom.value = lerp(ja.zoom, jb.zoom, sceneT)
+      backgroundUnis.uJourneyDensity.value = lerp(ja.density, jb.density, sceneT) * gain
+      v3(backgroundUnis.uMainColor.value, p.mainLightColor)
+      v3(backgroundUnis.uSideColor.value, p.sideLightColor)
       splatUnis.uSizeScale.value = p.sizeScale
       splatUnis.uOpacity.value = p.opacity * gain
       splatUnis.uSoftness.value = p.gaussianSoftness
@@ -519,7 +568,7 @@ export default function VisualSystemCanvas({
       }
       const info = renderer.info
       lastStats = {
-        fps, points: stats.points, coverage: stats.coverage, tier,
+        fps, points: stats.points + backgroundCount, coverage: stats.coverage, tier,
         dpr, frameMs: dt * 1000, gpuMs, longFrames,
         drawCalls: info.render.calls,
         geometries: info.memory.geometries,
@@ -535,6 +584,7 @@ export default function VisualSystemCanvas({
       canvas.removeEventListener('webglcontextlost', onContextLost)
       window.removeEventListener('resize', onResize)
       buffers?.main.dispose(); buffers?.optical.dispose()
+      backgroundGeo.dispose(); backgroundMat.dispose()
       fogGeo.dispose(); fogMats.forEach(m => m.dispose()); mask.dispose()
       spaceMesh.geometry.dispose(); spaceMat.dispose()
       splatMat.dispose()
