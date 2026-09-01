@@ -317,7 +317,10 @@ export const splatVert = /* glsl */`
     vColor = color;
     vAlpha = a;
     float diagnosticSize = isFar * 1.65 + isMid * 2.65 + isNear * 4.15;
-    gl_PointSize = mix(clamp(sz, lo, hi), diagnosticSize * uDPR, vDist);
+    /* 최종 합성 입자만 화면상 1 CSS px 확대한다. gl_PointSize는 device pixel
+       단위이므로 DPR을 더해야 고해상도 화면에서도 요청한 1px가 유지된다. */
+    float finalSize = clamp(sz, lo, hi) + uDPR;
+    gl_PointSize = mix(finalSize, diagnosticSize * uDPR, vDist);
     gl_Position  = clip;
   }
 `

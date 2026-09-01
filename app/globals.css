@@ -422,30 +422,26 @@ body.intro-active [data-reveal].is-visible {
 
 .hero-copy-frame { max-width: min(100%, 1080px); }
 .hero-light-field { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.hero-light { position: absolute; display: block; opacity: .72; will-change: transform; }
+.hero-light { position: absolute; display: block; opacity: .72; }
 .hero-light--blue {
   width: 62vw; height: 90vh; left: -20vw; bottom: -28vh;
   background: radial-gradient(ellipse at center, rgba(87,157,255,.42) 0%, rgba(40,104,230,.19) 38%, transparent 72%);
-  animation: heroDriftBlue 12s ease-in-out infinite alternate;
+  transform: translate3d(1.5vw,-1vh,0) scale(1.025);
 }
 .hero-light--violet {
   width: 42vw; height: 118vh; left: 43vw; top: -32vh;
   background: linear-gradient(103deg, transparent 25%, rgba(112,82,255,.08) 37%, rgba(184,128,255,.33) 51%, rgba(117,83,255,.09) 63%, transparent 76%);
-  transform: rotate(-7deg); animation: heroDriftViolet 15s ease-in-out infinite alternate;
+  transform: translate3d(-1vw,1.5vh,0) rotate(-5.5deg) scaleX(1.04);
 }
 .hero-light--cyan {
   width: 46vw; height: 84vh; right: -19vw; top: 10vh;
   background: radial-gradient(ellipse at center, rgba(25,182,255,.24) 0%, rgba(25,105,225,.11) 42%, transparent 72%);
-  animation: heroDriftCyan 17s ease-in-out infinite alternate;
+  transform: translate3d(-1.5vw,1vh,0) scale(1.03);
 }
 #hero::after {
   content: ''; position: absolute; z-index: 6; left: 0; right: 0; bottom: -1px; height: 18vh;
   pointer-events: none; background: linear-gradient(180deg, transparent 0%, rgba(7,16,31,.58) 58%, #07101f 100%);
 }
-@keyframes heroDriftBlue { to { transform: translate3d(3vw,-2vh,0) scale(1.05); } }
-@keyframes heroDriftViolet { to { transform: translate3d(-2vw,3vh,0) rotate(-4deg) scaleX(1.08); } }
-@keyframes heroDriftCyan { to { transform: translate3d(-3vw,2vh,0) scale(1.06); } }
-
 #hero [data-guard]::before {
   inset: -14% -9% -10% -15%;
   background: radial-gradient(ellipse 72% 88% at 28% 52%, rgba(5,12,31,.78) 0%, rgba(6,14,34,.42) 48%, transparent 79%);
