@@ -102,7 +102,7 @@ export type VisualParams = {
  */
 export const DEFAULT_PARAMS: VisualParams = {
   imageFieldOpacity: 0.20,
-  densityThreshold: 0.44,
+  densityThreshold: 0.40,
   densityContrast: 1.48,
   foregroundDensity: 0.42,
   contentFeather: 0.055,
@@ -112,7 +112,9 @@ export const DEFAULT_PARAMS: VisualParams = {
   coreOcclusion: 1.0,
   deflect: 0.28,
 
-  count: 14_000,
+  /* 최근 wake 평가를 4회→1회로 줄인 예산을 미세 입자 밀도로 되돌린다.
+     고성능 등급은 36k, tier 2는 약 21k, tier 1은 약 12k다. */
+  count: 36_000,
   microRatio: 0.66,
   mediumRatio: 0.30,
   largeRatio: 0.03,
@@ -124,8 +126,8 @@ export const DEFAULT_PARAMS: VisualParams = {
 
   baseCurlScale: 0.26,
   baseCurlStrength: 0.12,
-  pointerSmoothing: 0.028,
-  velocitySmoothing: 0.09,
+  pointerSmoothing: 0.075,
+  velocitySmoothing: 0.14,
   pointerRadius: 0.12,
   pointerForce: 0.58,
   velocityDamping: 0.968,

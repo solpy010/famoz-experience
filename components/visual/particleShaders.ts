@@ -53,7 +53,10 @@ const STROKE_GLSL = /* glsl */`
     disp += (liveDir * uPointerForce + livePerp * liveSide * uSwirl) * liveW;
     exposure += liveW;
 
-    for (int i = 0; i < ${MAX_STROKE - 1}; i++){
+    /* 저장된 wake는 가장 최근 선분 하나만 평가한다. 이전에는 네 선분을 모든
+       vertex가 반복 평가해 밀도를 올릴수록 비용이 선형으로 폭증했다. 장기 잔상은
+       uMemory가 담당하고, 이동 중에는 live head + 최신 wake면 연속성이 충분하다. */
+    for (int i = 0; i < 1; i++){
       vec4 A = uStrokes[i];      /* 최신 */
       vec4 B = uStrokes[i + 1];  /* 이전 */
 
