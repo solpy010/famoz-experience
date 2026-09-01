@@ -135,7 +135,7 @@ export default function VisualLab() {
           <h1>
             <span className="line" data-safe="strong">상상을</span>
             <span className="line" data-safe="strong">
-              살아있는 <span className="hl">공간 경험</span>으로
+              살아 있는 <span className="hl">공간 경험</span>으로
             </span>
             <span className="line" data-safe="strong">디자인합니다.</span>
           </h1>

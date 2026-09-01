@@ -106,9 +106,9 @@ export default function EndingScene() {
           }}
         >
           {[
-            { num: '12년', desc: '공간 경험 축적' },
-            { num: '200+', desc: '완성한 공간 프로젝트' },
-            { num: '5', desc: '전문 팀' },
+            { num: '전 과정', desc: '기획부터 구축·운영까지' },
+            { num: '3개 축', desc: '콘텐츠·미디어·AI 연결' },
+            { num: '5개 팀', desc: '전문 영역의 유기적 협업' },
           ].map((stat) => (
             <div key={stat.desc} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontSize: 'clamp(1.75rem, 3vw, 2.8rem)', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)' }}>
@@ -121,7 +121,7 @@ export default function EndingScene() {
 
         {/* Partner marquee */}
         <div style={{ marginTop: 'clamp(3rem, 6vw, 5rem)', borderTop: '1px solid var(--border)', paddingTop: 'clamp(2rem, 4vw, 3rem)', overflow: 'hidden' }}>
-          <p className="t-label" style={{ marginBottom: '1.5rem' }}>함께한 파트너</p>
+          <p className="t-label" style={{ marginBottom: '1.5rem' }}>주요 협업·프로젝트</p>
           <div aria-hidden="true" data-reveal style={{ overflow: 'hidden' }}>
             <div style={{ display: 'flex', width: 'max-content', animation: 'marquee 30s linear infinite', gap: 'clamp(2.5rem, 6vw, 6rem)' }}>
               {doubled.map((p, i) => (
@@ -141,6 +141,9 @@ export default function EndingScene() {
         {/* Team — grouped container reveal */}
         <div style={{ marginTop: 'clamp(3rem, 6vw, 5rem)' }}>
           <h3 style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1rem)', fontWeight: 700 }}>팀</h3>
+          <p className="t-body" style={{ maxWidth: '48ch', marginTop: '.8rem' }}>
+            기획·미디어 디자인·인터랙티브 개발·AI·운영이 한 흐름 안에서 협업합니다.
+          </p>
           <div
             data-reveal
             style={{
@@ -173,6 +176,9 @@ export default function EndingScene() {
         {/* Contact — grouped container reveal */}
         <div style={{ borderTop: '1px solid var(--border)', marginTop: 'clamp(3rem, 6vw, 5rem)', paddingTop: 'clamp(2.5rem, 5vw, 4rem)' }}>
           <h3 style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1rem)', fontWeight: 700, marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)' }}>연락처</h3>
+          <p className="t-body" style={{ maxWidth: '50ch', marginTop: 'calc(clamp(1.5rem, 3vw, 2.5rem) * -0.65)', marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+            새로운 공간의 목적과 대상, 운영 조건을 알려주시면 실행 가능한 경험 구조부터 함께 검토합니다.
+          </p>
           <div
             data-reveal
             style={{
@@ -223,7 +229,7 @@ export default function EndingScene() {
                 <span key={item}>{item}</span>
               ))}
             </div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>&copy; 2025 FAMOZ Co., Ltd. All rights reserved.</span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>&copy; 2026 FAMOZ Co., Ltd. All rights reserved.</span>
           </div>
         </div>
 

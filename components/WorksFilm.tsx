@@ -31,7 +31,7 @@ const PROJECTS: Project[] = [
   {
     id: 'apec',
     title: 'APEC 2025 미디어아트 빛광장',
-    desc: '미디어와 빛을 연결해 광장 전체를 하나의 장면으로 구성. 자연 환경과 동기화된 실시간 빛의 흐름.',
+    desc: '미디어와 빛을 연결해 광장 전체를 하나의 장면으로 구성. 장소의 야간 경관과 함께 이어지는 빛의 흐름.',
     tags: ['미디어아트', '빛·영상 동기화', '공공 설치'],
     accent: '#52BFFF',
     images: ['/works/apec-01.png', '/works/apec-02.png', '/works/apec-03.png'],
@@ -40,7 +40,7 @@ const PROJECTS: Project[] = [
   {
     id: 'sports',
     title: 'SPORTS MONSTER',
-    desc: '방문객의 움직임을 실시간 콘텐츠와 연결. 동작과 반응이 만드는 반복 가능한 체험 공간.',
+    desc: '방문객의 움직임을 실시간 콘텐츠와 연결. 동작과 반응이 장면을 바꾸는 참여형 체험 공간.',
     tags: ['인터랙티브', '게임 연출', '체험 설계'],
     accent: '#FF9A62',
     images: ['/works/sports-01.png', '/works/sports-02.png', '/works/sports-03.png', '/works/sports-04.png'],
@@ -300,7 +300,10 @@ export default function WorksFilm() {
             ))}
           </div>
 
-          {/* Tags */}
+          {/* 수행 영역 */}
+          <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,.46)', letterSpacing: '.12em', marginBottom: '.55rem' }}>
+            수행 영역
+          </p>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
             {project.tags.map((tag) => (
               <span key={tag} style={{

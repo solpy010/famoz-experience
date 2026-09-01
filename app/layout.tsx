@@ -22,7 +22,7 @@ export const SITE_URL =
 /** 실제 도메인이 지정된 경우에만 검색 색인을 허용한다. */
 export const IS_PUBLIC = Boolean(CONFIGURED_URL);
 
-const TITLE = "FAMOZ VISUAL.LAB — 상상을 살아있는 공간 경험으로 디자인합니다";
+const TITLE = "FAMOZ VISUAL.LAB — 상상을 살아 있는 공간 경험으로 디자인합니다";
 const DESCRIPTION =
   "㈜파모즈는 콘텐츠·미디어·AI를 연결해 사람에게 반응하고 이야기를 이어가는 공간을 만듭니다. 전시·공공·미디어 공간 경험 디자인 스튜디오.";
 
@@ -94,7 +94,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 postalCode: "04075",
                 addressCountry: "KR",
               },
-              founder: { "@type": "Person", name: "원정환" },
             }),
           }}
         />

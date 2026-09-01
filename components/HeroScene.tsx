@@ -90,7 +90,7 @@ export default function HeroScene({ introComplete }: Props) {
                 글자 사이에 밝은 입자가 끼는 것도 막지 못한다. */}
             <span data-reveal data-safe="headline" style={{ display: 'block' }}>상상을</span>
             <span data-reveal data-safe="headline" style={{ display: 'block' }}>
-              살아있는 <span className="hl-champagne">공간 경험</span>으로
+              살아 있는 <span className="hl-champagne">공간 경험</span>으로
             </span>
             <span data-reveal data-safe="headline" style={{ display: 'block' }}>디자인합니다.</span>
           </h1>
