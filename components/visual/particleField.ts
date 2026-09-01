@@ -17,6 +17,17 @@ export type SplatBuffers = {
   main: THREE.BufferGeometry      // Alpha blending — 전체의 약 88%
   optical: THREE.BufferGeometry   // Additive blending — 광학 입자 10~15%
   coverage: number                // 후보 대비 채택률 (밀도장 점유 지표)
+  zoneCounts: [number, number, number, number, number]
+  zRange: [number, number]
+}
+
+/** 카메라에서 가까운 순서 A → E. 별도 점군이 아니라 같은 버퍼의 의미 속성이다. */
+function depthZone(z: number): 0 | 1 | 2 | 3 | 4 {
+  if (z > -0.35) return 0 // A: 최전경 통과층
+  if (z > -1.05) return 1 // B: 사용자 반응층
+  if (z > -1.85) return 2 // C: 공간 구조층
+  if (z > -2.45) return 3 // D: 데이터 흐름층
+  return 4               // E: 심부 환경층
 }
 
 /* ── CPU value noise ────────────────────────────────────────── */
@@ -118,7 +129,7 @@ export function buildSplatField(
 
   const oX: number[] = [], oY: number[] = [], oZ: number[] = []
   const bright: number[] = [], dens: number[] = [], cls: number[] = []
-  const seed: number[] = [], band: number[] = [], role: number[] = []
+  const seed: number[] = [], band: number[] = [], role: number[] = [], zone: number[] = []
   const optical: number[] = []
 
   const BANDS = [
@@ -172,7 +183,7 @@ export function buildSplatField(
     dens.push(Math.min(1, Math.max(d, prox * 0.9)))
     bright.push(brightness(Math.random()))
     cls.push(c); band.push(bi); role.push(rl)
-    seed.push(Math.random())
+    seed.push(Math.random()); zone.push(depthZone(z))
     optical.push(rl === 0 && c === 0 && Math.random() < additiveRatio * 1.6 ? 1 : 0)
   }
 
@@ -185,13 +196,13 @@ export function buildSplatField(
     const pos = new Float32Array(m * 3), org = new Float32Array(m * 3)
     const br = new Float32Array(m), de = new Float32Array(m)
     const cl = new Float32Array(m), sd = new Float32Array(m)
-    const bd = new Float32Array(m), rl = new Float32Array(m)
+    const bd = new Float32Array(m), rl = new Float32Array(m), zn = new Float32Array(m)
     idx.forEach((src, i) => {
       pos[i*3] = org[i*3] = oX[src]
       pos[i*3+1] = org[i*3+1] = oY[src]
       pos[i*3+2] = org[i*3+2] = oZ[src]
       br[i] = bright[src]; de[i] = dens[src]; cl[i] = cls[src]
-      sd[i] = seed[src]; bd[i] = band[src]; rl[i] = role[src]
+      sd[i] = seed[src]; bd[i] = band[src]; rl[i] = role[src]; zn[i] = zone[src]
     })
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
@@ -202,8 +213,17 @@ export function buildSplatField(
     g.setAttribute('aSeed',    new THREE.BufferAttribute(sd, 1))
     g.setAttribute('aBand',    new THREE.BufferAttribute(bd, 1))
     g.setAttribute('aRole',    new THREE.BufferAttribute(rl, 1))
+    g.setAttribute('aZone',    new THREE.BufferAttribute(zn, 1))
     return g
   }
 
-  return { main: pack(mainIdx), optical: pack(optIdx), coverage: tried ? n / tried : 0 }
+  const zoneCounts: [number, number, number, number, number] = [0, 0, 0, 0, 0]
+  zone.forEach(z => { zoneCounts[z]++ })
+  let zMin = Infinity, zMax = -Infinity
+  for (const z of oZ) { if (z < zMin) zMin = z; if (z > zMax) zMax = z }
+  const zRange: [number, number] = n ? [zMin, zMax] : [0, 0]
+  return {
+    main: pack(mainIdx), optical: pack(optIdx), coverage: tried ? n / tried : 0,
+    zoneCounts, zRange,
+  }
 }

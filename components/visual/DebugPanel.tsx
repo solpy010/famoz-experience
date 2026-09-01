@@ -116,7 +116,7 @@ export default function DebugPanel() {
     Debug: folder({
       view: {
         value: DEFAULT_PARAMS.view,
-        options: ['composite', 'l0', 'l1', 'cone', 'reflect', 'l1l2', 'far', 'mid', 'near', 'dist', 'masks', 'velocity'],
+        options: ['composite', 'zones', 'zoneA', 'zoneB', 'zoneC', 'zoneD', 'zoneE', 'l0', 'l1', 'cone', 'reflect', 'l1l2', 'far', 'mid', 'near', 'dist', 'masks', 'velocity'],
         transient: true,
         onChange: (v: DebugView) => { visualParams.view = v },
       },

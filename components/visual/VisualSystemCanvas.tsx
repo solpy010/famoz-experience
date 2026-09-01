@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { detectTier } from '../sceneStore'
-import { visualParams, visualEvents, LAYER_RESPONSE, VIEW_INDEX, LAYER_FILTER } from './visualParams'
+import { visualParams, visualEvents, LAYER_RESPONSE, VIEW_INDEX, LAYER_FILTER, ZONE_FILTER } from './visualParams'
 import { buildSplatField, type Span, type SplatBuffers } from './particleField'
 import { splatVert, splatFrag, backgroundVert, backgroundFrag, fogVert, fogFrag } from './particleShaders'
 import { MaskField } from './maskField'
@@ -37,6 +37,8 @@ export type VisualStats = {
   fps: number; points: number; coverage: number; tier: number
   dpr: number; frameMs: number; gpuMs: number; longFrames: number
   drawCalls: number; geometries: number; textures: number; programs: number
+  zoneCounts: [number, number, number, number, number]
+  zRange: [number, number]
 }
 
 export default function VisualSystemCanvas({
@@ -176,6 +178,7 @@ export default function VisualSystemCanvas({
       uDeflect:         { value: visualParams.deflect },
       uRevealCap:       { value: 0.25 },
       uLayerFilter:     { value: -1 },
+      uZoneFilter:      { value: -1 },
       uSplatAniso:      { value: visualParams.splatAniso },
       uAspect:          { value: camera.aspect },
       uSpan:            { value: new THREE.Vector2(span.x, span.y) },
@@ -241,7 +244,9 @@ export default function VisualSystemCanvas({
     backgroundPoints.renderOrder = -0.5
     scene.add(backgroundPoints)
 
-    let stats = { points: 0, coverage: 0 }
+    let stats: { points: number; coverage: number; zoneCounts: [number, number, number, number, number]; zRange: [number, number] } = {
+      points: 0, coverage: 0, zoneCounts: [0, 0, 0, 0, 0], zRange: [0, 0],
+    }
     const rebuild = () => {
       buffers?.main.dispose()
       buffers?.optical.dispose()
@@ -259,6 +264,8 @@ export default function VisualSystemCanvas({
       stats = {
         points: buffers.main.getAttribute('position').count,
         coverage: buffers.coverage,
+        zoneCounts: buffers.zoneCounts,
+        zRange: buffers.zRange,
       }
     }
     rebuild()
@@ -375,6 +382,7 @@ export default function VisualSystemCanvas({
     let lastStats: VisualStats = {
       fps: 0, points: 0, coverage: 0, tier, dpr, frameMs: 0, gpuMs: -1, longFrames: 0,
       drawCalls: 0, geometries: 0, textures: 0, programs: 0,
+      zoneCounts: [0, 0, 0, 0, 0], zRange: [0, 0],
     }
     let wasActive = activeRef.current
     let longFrames = 0
@@ -533,13 +541,18 @@ export default function VisualSystemCanvas({
                      || v === 'cone' || v === 'reflect'
       const showFog   = tier >= 2 && v === 'velocity'
       const layerOnly = LAYER_FILTER[v]
+      const zoneOnly = ZONE_FILTER[v]
       const showSplat = v === 'composite' || v === 'masks' || v === 'velocity'
-                     || v === 'dist' || layerOnly !== undefined
-      spaceMesh.visible = showSpace
+                     || v === 'dist' || v === 'zones'
+                     || layerOnly !== undefined || zoneOnly !== undefined
+      /* 최종 합성에서도 L1 구조면을 낮은 농도로 유지한다. 이전에는 composite에서
+         통째로 숨겨져 입자 뒤의 부피·통로가 사라지고 별 배경처럼 보였다. */
+      spaceMesh.visible = v === 'composite' || showSpace
       for (const m of fogMeshes) m.visible = showFog
       mainPoints.visible = showSplat
       const lf = layerOnly !== undefined ? layerOnly : -1
       splatUnis.uLayerFilter.value = lf
+      splatUnis.uZoneFilter.value = zoneOnly !== undefined ? zoneOnly : -1
       splatUnis.uSplatAniso.value = p.splatAniso
       splatUnis.uSheetBind.value = p.sheetBind
       splatUnis.uLightZ.value = p.lightZ
@@ -574,6 +587,8 @@ export default function VisualSystemCanvas({
         geometries: info.memory.geometries,
         textures: info.memory.textures,
         programs: info.programs?.length ?? 0,
+        zoneCounts: stats.zoneCounts,
+        zRange: stats.zRange,
       }
       statsRef.current?.(lastStats)
     }

@@ -172,6 +172,7 @@ export const splatVert = /* glsl */`
   uniform float uView;
 
   uniform float uLayerFilter;   /* -1 전부, 0 far, 1 mid, 2 near */
+  uniform float uZoneFilter;    /* -1 전부, 0 A(근경) → 4 E(심부) */
   uniform float uSplatAniso, uAspect, uSheetBind;
   uniform vec2  uSpan;
   uniform vec2  uJourneyOffset, uJourneyFlow;
@@ -181,7 +182,7 @@ export const splatVert = /* glsl */`
   uniform float uLightZ;
 
   attribute vec3  aOrigin;
-  attribute float aBright, aDensity, aClass, aSeed, aBand, aRole;
+  attribute float aBright, aDensity, aClass, aSeed, aBand, aRole, aZone;
 
   varying vec3  vColor;
   varying float vAlpha, vSoft, vAngle, vAniso;
@@ -201,16 +202,29 @@ export const splatVert = /* glsl */`
     float isNear = step(1.5, aBand);
     float isMid  = 1.0 - isFar - isNear;
 
+    float zoneA = 1.0 - step(0.5, aZone);
+    float zoneB = step(0.5, aZone) * (1.0 - step(1.5, aZone));
+    float zoneC = step(1.5, aZone) * (1.0 - step(2.5, aZone));
+    float zoneD = step(2.5, aZone) * (1.0 - step(3.5, aZone));
+    float zoneE = step(3.5, aZone);
+
     float lag   = isMicro*uLagMicro   + isMedium*uLagMedium   + isLarge*uLagLarge;
     float fsc   = isMicro*uForceMicro + isMedium*uForceMedium + isLarge*uForceLarge;
     float tau   = isMicro*uTauMicro   + isMedium*uTauMedium   + isLarge*uTauLarge;
+    /* 클래스는 형태, Zone은 공간 기능을 결정한다. 가까운 층은 즉각·강하게,
+       심부는 늦고 오래 반응해 같은 XY 이동이 다섯 깊이로 분리된다. */
+    lag += zoneB*.08 + zoneC*.20 + zoneD*.36 + zoneE*.56;
+    fsc *= zoneA*1.42 + zoneB*1.18 + zoneC*.82 + zoneD*.48 + zoneE*.20;
+    tau *= zoneA*.68 + zoneB*.92 + zoneC*1.18 + zoneD*1.52 + zoneE*1.92;
 
     /* 기본 대기 흐름 — 포인터가 있어도 덮어쓰지 않는다 (§11) */
     /* 눈으로 판독 가능한 세 개의 깊이 속도. 이전 값(0.035~0.11)은 한 화면을
        가로지르는 데 수분이 걸려 정지 별가루처럼 보였다. 속도를 올리되 seed별
        위상과 깊이별 차이를 둬 전 화면이 한 장처럼 미끄러지지 않게 한다. */
-    float speed = isFar * 0.10 + isMid * 0.22 + isNear * 0.38;
-    float direction = step(1.5, aRole) > 0.5 ? -1.0 : 1.0;
+    float speed = zoneA*.46 + zoneB*.31 + zoneC*.20 + zoneD*.12 + zoneE*.065;
+    /* D/E는 느린 반대 시차로 움직여 화면 전체가 한 장처럼 미끄러지는 것을 막는다. */
+    float direction = (zoneD + zoneE) > .5 ? -1.0 : 1.0;
+    direction *= step(1.5, aRole) > 0.5 ? -1.0 : 1.0;
     float travel = uTime * speed * direction;
     vec3 pos = origin;
     pos.x = mod(origin.x + uSpan.x + travel + sin(origin.y * 1.4 + aSeed * 6.283) * .08, uSpan.x * 2.0) - uSpan.x;
@@ -287,6 +301,9 @@ export const splatVert = /* glsl */`
     float wantAll = step(uLayerFilter, -0.5);
     float keep = wantAll + (1.0 - wantAll) * step(abs(aBand - uLayerFilter), 0.5);
     a *= keep;
+    float wantAllZones = step(uZoneFilter, -0.5);
+    float keepZone = wantAllZones + (1.0 - wantAllZones) * step(abs(aZone - uZoneFilter), 0.5);
+    a *= keepZone;
 
     /* ── 형태 ──
        원형만 반복하지 않는다. mid의 절반은 흐름 방향으로 늘어난 타원형이라
@@ -313,7 +330,8 @@ export const splatVert = /* glsl */`
     /* VIEW_INDEX와 반드시 같이 움직여야 한다: masks = 8, velocity = 9, dist = 10 */
     float vMask = step(7.5, uView) * step(uView, 8.5);
     float vVel  = step(8.5, uView) * step(uView, 9.5);
-    float vDist = step(9.5, uView);
+    float vDist = step(9.5, uView) * step(uView, 10.5);
+    float vZones = step(12.5, uView);
     /* E: 깊이 진단색 — far blue / mid green / near amber. 진단 화면에서
        색만 보고도 세 층의 분포·크기·속도를 구별할 수 있어야 한다. */
     vec3 depthCol = isFar * vec3(0.30, 0.56, 1.00)
@@ -321,6 +339,13 @@ export const splatVert = /* glsl */`
                   + isNear * vec3(1.00, 0.70, 0.24);
     color = mix(color, depthCol, vDist);
     a     = mix(a, max(a * 2.0, 0.48), vDist);
+    /* A coral / B cyan / C gold / D violet / E blue. 최종 미술색이 아니라
+       Z 기능·분포를 검증하기 위한 고대비 진단색이다. */
+    vec3 zoneCol = zoneA*vec3(1.00,.38,.28) + zoneB*vec3(.18,.88,1.00)
+                 + zoneC*vec3(1.00,.76,.28) + zoneD*vec3(.70,.38,1.00)
+                 + zoneE*vec3(.24,.46,1.00);
+    color = mix(color, zoneCol, vZones);
+    a = mix(a, max(a, .54), vZones);
     /* 진단 모드의 짧은 dash는 별도 벡터 장식이 아니라 실제 입자의 긴 축이다.
        세 층이 서로 다른 길이를 가져 방향과 원근을 한 프레임에서도 판독한다. */
     vAniso = mix(vAniso, isFar * 1.35 + isMid * 2.55 + isNear * 1.70, vDist);
@@ -337,7 +362,8 @@ export const splatVert = /* glsl */`
     /* 최종 합성 입자만 화면상 1 CSS px 확대한다. gl_PointSize는 device pixel
        단위이므로 DPR을 더해야 고해상도 화면에서도 요청한 1px가 유지된다. */
     float finalSize = clamp(sz, lo, hi) + uDPR;
-    gl_PointSize = mix(finalSize, diagnosticSize * uDPR, vDist);
+    float zoneDiagnosticSize = (zoneA*4.5 + zoneB*3.5 + zoneC*2.9 + zoneD*2.2 + zoneE*1.7) * uDPR;
+    gl_PointSize = mix(mix(finalSize, diagnosticSize * uDPR, vDist), zoneDiagnosticSize, vZones);
     gl_Position  = clip;
   }
 `

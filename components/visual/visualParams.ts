@@ -10,6 +10,7 @@ export type DebugView =
   | 'composite'                       // 08 최종 합성
   | 'l0' | 'l1' | 'l2' | 'l1l2'       // 01~04 레이어 분리
   | 'far' | 'mid' | 'near'            // 깊이별 splat
+  | 'zones' | 'zoneA' | 'zoneB' | 'zoneC' | 'zoneD' | 'zoneE'
   | 'cone' | 'reflect'                // B, C — L2 광학 마스크 분리
   | 'masks' | 'velocity' | 'dist'     // 디버그 (E = dist)
 
@@ -198,11 +199,17 @@ export const VIEW_INDEX: Record<DebugView, number> = {
   composite: 0, l0: 1, l1: 2, l2: 3, l1l2: 4,
   far: 5, mid: 6, near: 7, masks: 8, velocity: 9, dist: 10,
   cone: 11, reflect: 12,
+  zones: 13, zoneA: 14, zoneB: 15, zoneC: 16, zoneD: 17, zoneE: 18,
 }
 
 /** 깊이 레이어 필터. -1 = 전부 */
 export const LAYER_FILTER: Partial<Record<DebugView, number>> = {
   far: 0, mid: 1, near: 2,
+}
+
+/** 기능적 Z 구역 필터. -1은 셰이더에서 전체를 의미한다. */
+export const ZONE_FILTER: Partial<Record<DebugView, number>> = {
+  zoneA: 0, zoneB: 1, zoneC: 2, zoneD: 3, zoneE: 4,
 }
 
 /** 레이어별 반응 지연·힘·복귀 (문서 §10) */

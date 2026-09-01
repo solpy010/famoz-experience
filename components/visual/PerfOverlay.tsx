@@ -17,6 +17,7 @@ const empty: PerfSample = {
   fps: 0, points: 0, coverage: 0, tier: 0, dpr: 0, frameMs: 0,
   gpuMs: -1, longFrames: 0,
   drawCalls: 0, geometries: 0, textures: 0, programs: 0,
+  zoneCounts: [0, 0, 0, 0, 0], zRange: [0, 0],
   canvasCount: 0, rafCount: 0,
 }
 
@@ -124,6 +125,8 @@ export default function PerfOverlay({
       {row('long frames', live.longFrames)}
       {row('dpr', live.dpr.toFixed(2))}
       {row('particles', live.points.toLocaleString())}
+      {row('zones A–E', live.zoneCounts.map(n => n.toLocaleString()).join(' / '))}
+      {row('z range', `${live.zRange[0].toFixed(2)}…${live.zRange[1].toFixed(2)}`)}
       {row('draw calls', live.drawCalls)}
       {row('geometries', live.geometries)}
       {row('textures', live.textures)}

@@ -39,6 +39,7 @@ export default function Home() {
     fps: 0, points: 0, coverage: 0, tier: 0, dpr: 0, frameMs: 0,
     gpuMs: -1, longFrames: 0,
     drawCalls: 0, geometries: 0, textures: 0, programs: 0,
+    zoneCounts: [0, 0, 0, 0, 0], zRange: [0, 0],
   })
 
   useEffect(() => {
