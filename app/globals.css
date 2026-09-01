@@ -396,6 +396,10 @@ body.intro-active [data-reveal].is-visible {
 @keyframes scrollDown { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
 
 /* Works film */
+.works-image {
+  transform: translateZ(0) scale(1.002);
+  backface-visibility: hidden;
+}
 .film-img {
   position: absolute;
   inset: 0;
@@ -412,6 +416,8 @@ body.intro-active [data-reveal].is-visible {
   .px-far, .px-mid, .px-near { transform: none !important; }
   .kw-light.is-visible { animation: none !important; background-position: 0% 50% !important; }
   .kw-glitch.is-visible::before, .kw-glitch.is-visible::after { animation: none !important; display: none !important; }
+  .works-image { transition: none !important; transform: none !important; }
+  .team-system__line { animation: none !important; }
 }
 :focus-visible { outline: 2px solid var(--ac-magenta); outline-offset: 4px; }
 
@@ -562,6 +568,51 @@ body.intro-active [data-reveal].is-visible {
   pointer-events: none; background: linear-gradient(180deg, transparent 0%, rgba(8,18,39,.72) 65%, #081227 100%);
 }
 
+/* What We Create — 프로젝트 이미지를 카드가 아니라 후방 공간으로 합성한다. */
+.what-stage-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--stage-position);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.12) 30%, #000 58%, rgba(0,0,0,.72) 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.12) 30%, #000 58%, rgba(0,0,0,.72) 100%);
+}
+.what-stage-keyword {
+  position: absolute;
+  right: clamp(1.5rem,4vw,5rem);
+  bottom: 5%;
+  max-width: calc(100vw - clamp(3rem,8vw,10rem));
+  font: 800 clamp(7rem,18vw,18rem)/1 'Paperlogy','Pretendard',sans-serif;
+  letter-spacing: -.06em;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Ending — 다섯 팀을 개별 목록이 아닌 하나의 협업 구조로 보여준다. */
+.team-system {
+  display: grid;
+  grid-template-columns: minmax(240px,.75fr) minmax(0,1.6fr);
+  gap: clamp(1.5rem,4vw,4rem);
+  margin-top: clamp(1.5rem,3vw,2.5rem);
+  padding: clamp(1.5rem,3vw,3rem);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(ellipse 70% 120% at 0% 50%, rgba(255,190,112,.08), transparent 68%),
+    linear-gradient(135deg, rgba(31,24,36,.66), rgba(12,17,29,.42));
+}
+.team-system__core { display:flex; flex-direction:column; justify-content:center; min-height:14rem; }
+.team-system__core > span { color:var(--ac-gold); font:600 .62rem/1.4 'Paperlogy','Pretendard',sans-serif; letter-spacing:.14em; }
+.team-system__core > strong { margin-top:1rem; color:var(--text); font:500 clamp(1.7rem,3.2vw,3rem)/1.05 'Paperlogy','Pretendard',sans-serif; letter-spacing:-.035em; }
+.team-system__core > p { max-width:30ch; margin-top:1.1rem; color:var(--text-sub); font-size:clamp(.84rem,1vw,.96rem); line-height:1.75; }
+.team-system__orbit { position:relative; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:center; gap:1px; }
+.team-system__node { position:relative; z-index:1; display:flex; gap:.9rem; align-items:baseline; min-height:4.5rem; padding:1.2rem; background:rgba(9,14,25,.56); border:1px solid rgba(255,255,255,.065); }
+.team-system__node:last-of-type { grid-column:1/-1; }
+.team-system__node > span { color:var(--text-muted); font:700 .6rem/1 'Paperlogy','Pretendard',sans-serif; letter-spacing:.12em; }
+.team-system__node > strong { color:var(--text-sub); font-size:clamp(.86rem,1.05vw,1rem); }
+.team-system__line { position:absolute; left:50%; top:8%; bottom:8%; width:1px; background:linear-gradient(180deg,transparent,rgba(255,197,118,.32),rgba(125,207,255,.28),transparent); }
+
 @media (max-width: 760px) {
   .mascot-story { height: 540vh !important; }
   .mascot-stage { min-height: 620px; }
@@ -580,6 +631,26 @@ body.intro-active [data-reveal].is-visible {
   .mascot-progress { bottom: 3.5vh; }
   .mascot-progress span { width: 1.2rem; }
   .mascot-progress span.is-active { width: 2.6rem; }
+  .what-stage-image {
+    object-position: var(--stage-mobile-position);
+    opacity: .2 !important;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.72) 34%, rgba(0,0,0,.12) 66%, transparent 88%);
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.72) 34%, rgba(0,0,0,.12) 66%, transparent 88%);
+  }
+  .what-stage-keyword {
+    right: var(--gutter); bottom: 3%; max-width: calc(100vw - var(--gutter) * 2);
+    font-size: clamp(4.2rem,20vw,7rem); letter-spacing:-.055em;
+  }
+  .team-system { grid-template-columns:1fr; padding:1.25rem; }
+  .team-system__core { min-height:auto; padding:.5rem .25rem 1.25rem; }
+  .team-system__orbit { grid-template-columns:1fr; }
+  .team-system__node:last-of-type { grid-column:auto; }
+  .team-system__line { left:1.75rem; top:5%; bottom:5%; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .works-description { display:none; }
+  .what-stage-keyword { bottom:-4%; font-size:clamp(4rem,16vw,7rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {

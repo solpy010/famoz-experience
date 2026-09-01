@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { subscribeScroll } from './scrollBus'
 
 const STAGES = [
-  { accent: '#66e8c1', label: 'WHAT WE CREATE · 01', bg: 'radial-gradient(ellipse 72% 78% at 28% 48%, rgba(28,160,144,.20) 0%, rgba(15,75,102,.10) 42%, transparent 76%)', image: '/works/immersive-03.png', imagePosition: '68% center', kw: 'Immersive', kwColor: 'rgba(90,232,205,.075)', lines: ['이야기가', '장면으로 펼쳐지는', '몰입형 미디어 공간.'], highlight: 1, body: '공간의 스케일과 관람 동선을 해석해\n영상·빛·사운드가 하나의 장면으로 이어지는\n몰입 환경을 설계합니다.' },
-  { accent: '#ffad66', label: 'WHAT WE CREATE · 02', bg: 'radial-gradient(ellipse 68% 74% at 62% 44%, rgba(255,112,62,.24) 0%, rgba(255,190,83,.12) 44%, transparent 76%)', image: '/works/sports-04.png', imagePosition: '72% center', kw: 'Reactive', kwColor: 'rgba(255,157,91,.085)', lines: ['움직임과 선택에', '반응하는', '인터랙티브 경험.'], highlight: 1, body: '센서와 인터랙티브 미디어를 연결해\n관람객의 움직임과 선택이 장면을 바꾸는\n참여 구조를 만듭니다.' },
-  { accent: '#d69cff', label: 'WHAT WE CREATE · 03', bg: 'radial-gradient(ellipse 70% 76% at 48% 56%, rgba(190,91,255,.23) 0%, rgba(46,190,255,.12) 48%, transparent 78%)', image: '/works/hospital-01.png', imagePosition: '76% center', kw: 'Spatial', kwColor: 'rgba(214,156,255,.085)', lines: ['위치와 상황을 이해해', '도움을 주는', 'AI 공간 서비스.'], highlight: 1, body: '콘텐츠·미디어·AI를 공간 조건과 운영 흐름에 결합해\n필요한 순간에 반응하는 공간 서비스를 구축합니다.' },
+  { accent: '#66e8c1', label: 'WHAT WE CREATE · 01', bg: 'radial-gradient(ellipse 72% 78% at 28% 48%, rgba(28,160,144,.20) 0%, rgba(15,75,102,.10) 42%, transparent 76%)', image: '/works/immersive-03.png', imagePosition: '68% center', mobileImagePosition: '58% 24%', kw: 'Immersive', kwColor: 'rgba(90,232,205,.075)', lines: ['이야기가', '장면으로 펼쳐지는', '몰입형 미디어 공간.'], highlight: 1, body: '공간의 스케일과 관람 동선을 해석해\n영상·빛·사운드가 하나의 장면으로 이어지는\n몰입 환경을 설계합니다.' },
+  { accent: '#ffad66', label: 'WHAT WE CREATE · 02', bg: 'radial-gradient(ellipse 68% 74% at 62% 44%, rgba(255,112,62,.24) 0%, rgba(255,190,83,.12) 44%, transparent 76%)', image: '/works/sports-04.png', imagePosition: '72% center', mobileImagePosition: '58% 20%', kw: 'Reactive', kwColor: 'rgba(255,157,91,.085)', lines: ['움직임과 선택에', '반응하는', '인터랙티브 경험.'], highlight: 1, body: '센서와 인터랙티브 미디어를 연결해\n관람객의 움직임과 선택이 장면을 바꾸는\n참여 구조를 만듭니다.' },
+  { accent: '#d69cff', label: 'WHAT WE CREATE · 03', bg: 'radial-gradient(ellipse 70% 76% at 48% 56%, rgba(190,91,255,.23) 0%, rgba(46,190,255,.12) 48%, transparent 78%)', image: '/works/hospital-01.png', imagePosition: '76% center', mobileImagePosition: '58% 20%', kw: 'Spatial', kwColor: 'rgba(214,156,255,.085)', lines: ['위치와 상황을 이해해', '도움을 주는', 'AI 공간 서비스.'], highlight: 1, body: '콘텐츠·미디어·AI를 공간 조건과 운영 흐름에 결합해\n필요한 순간에 반응하는 공간 서비스를 구축합니다.' },
 ] as const
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value))
@@ -41,17 +41,15 @@ export default function WhatWeCreate() {
                 src={stage.image}
                 alt=""
                 loading="lazy"
-                className="px-mid"
+                className="px-mid what-stage-image"
                 style={{
-                  position: 'absolute', inset: 0, width: '100%', height: '100%',
-                  objectFit: 'cover', objectPosition: stage.imagePosition,
+                  '--stage-position': stage.imagePosition,
+                  '--stage-mobile-position': stage.mobileImagePosition,
                   opacity: .24, filter: 'saturate(.82) contrast(1.08)',
-                  maskImage: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,.12) 30%, #000 58%, rgba(0,0,0,.72) 100%)',
-                  WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,.12) 30%, #000 58%, rgba(0,0,0,.72) 100%)',
-                }}
+                } as CSSProperties}
               />
               <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(5,11,24,.88) 0%, rgba(5,11,24,.58) 42%, rgba(5,11,24,.12) 75%, rgba(5,11,24,.42) 100%)' }} />
-              <div className="px-near" style={{ position: 'absolute', bottom: '5%', right: 'clamp(1.5rem,4vw,5rem)', maxWidth: '94vw', fontSize: 'clamp(7rem,18vw,18rem)', fontWeight: 800, letterSpacing: '-.06em', lineHeight: 1, fontFamily: "'Paperlogy','Pretendard',sans-serif", color: stage.kwColor, userSelect: 'none', whiteSpace: 'nowrap' }}>{stage.kw}</div>
+              <div className="px-near what-stage-keyword" style={{ color: stage.kwColor }}>{stage.kw}</div>
               <div className="shell" data-guard style={{ position: 'absolute', top: '50%', left: 0, transform: `translate3d(0,calc(-50% + ${(1 - local) * 28}px),0)`, opacity: local }}>
                 <p className="t-label" style={{ color: stage.accent, marginBottom: 'clamp(1.5rem,3vh,2.5rem)' }}>{stage.label}</p>
                 <h2 className="t-scene" style={{ maxWidth: '16ch', marginBottom: 'clamp(1.25rem,2.5vh,2rem)' }}>

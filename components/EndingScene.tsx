@@ -26,7 +26,6 @@ const CONTACT = [
 const BUSINESS = [
   '㈜파모즈',
   '대표 원정환',
-  '2013년 6월 1일 설립',
   '사업자등록번호 211-88-95804',
 ]
 
@@ -122,11 +121,12 @@ export default function EndingScene() {
         {/* Partner marquee */}
         <div style={{ marginTop: 'clamp(3rem, 6vw, 5rem)', borderTop: '1px solid var(--border)', paddingTop: 'clamp(2rem, 4vw, 3rem)', overflow: 'hidden' }}>
           <p className="t-label" style={{ marginBottom: '1.5rem' }}>주요 협업·프로젝트</p>
-          <div aria-hidden="true" data-reveal style={{ overflow: 'hidden' }}>
+          <div data-reveal style={{ overflow: 'hidden' }}>
             <div style={{ display: 'flex', width: 'max-content', animation: 'marquee 30s linear infinite', gap: 'clamp(2.5rem, 6vw, 6rem)' }}>
               {doubled.map((p, i) => (
                 <span
                   key={i}
+                  aria-hidden={i >= PARTNERS.length}
                   style={{ fontSize: 'clamp(0.8rem, 1.1vw, 1rem)', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap', transition: 'color 0.3s' }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-sub)')}
                   onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
@@ -141,42 +141,31 @@ export default function EndingScene() {
         {/* Team — grouped container reveal */}
         <div style={{ marginTop: 'clamp(3rem, 6vw, 5rem)' }}>
           <h3 style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1rem)', fontWeight: 700 }}>팀</h3>
-          <p className="t-body" style={{ maxWidth: '48ch', marginTop: '.8rem' }}>
-            기획·미디어 디자인·인터랙티브 개발·AI·운영이 한 흐름 안에서 협업합니다.
-          </p>
           <div
             data-reveal
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
-              gap: 0, borderTop: '1px solid var(--border)',
-              marginTop: 'clamp(1rem, 2vw, 1.5rem)',
-            }}
+            className="team-system"
           >
-            {TEAMS.map((name, i) => (
-              <div
-                key={name}
-                style={{
-                  padding: 'clamp(1.1rem, 2vw, 1.6rem) 0',
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex', alignItems: 'baseline', gap: '1rem',
-                }}
-              >
-                <span style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', color: 'var(--text-muted)', flexShrink: 0 }}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <span style={{ fontSize: 'clamp(0.9rem, 1.15vw, 1.05rem)', fontWeight: 700, color: 'var(--text-sub)' }}>
-                  {name}
-                </span>
-              </div>
-            ))}
+            <div className="team-system__core">
+              <span>ONE EXPERIENCE SYSTEM</span>
+              <strong>하나의 공간 경험</strong>
+              <p>기획·미디어 디자인·인터랙티브 개발·AI·운영이 하나의 목표를 중심으로 협업합니다.</p>
+            </div>
+            <div className="team-system__orbit">
+              {TEAMS.map((name, i) => (
+                <div className="team-system__node" key={name}>
+                  <span>{String(i + 1).padStart(2, '0')}</span>
+                  <strong>{name}</strong>
+                </div>
+              ))}
+              <div className="team-system__line" aria-hidden="true" />
+            </div>
           </div>
         </div>
 
         {/* Contact — grouped container reveal */}
         <div style={{ borderTop: '1px solid var(--border)', marginTop: 'clamp(3rem, 6vw, 5rem)', paddingTop: 'clamp(2.5rem, 5vw, 4rem)' }}>
-          <h3 style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1rem)', fontWeight: 700, marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)' }}>연락처</h3>
-          <p className="t-body" style={{ maxWidth: '50ch', marginTop: 'calc(clamp(1.5rem, 3vw, 2.5rem) * -0.65)', marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+          <h3 style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1rem)', fontWeight: 700 }}>연락처</h3>
+          <p className="t-body" style={{ maxWidth: '50ch', marginTop: '.8rem', marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
             새로운 공간의 목적과 대상, 운영 조건을 알려주시면 실행 가능한 경험 구조부터 함께 검토합니다.
           </p>
           <div
