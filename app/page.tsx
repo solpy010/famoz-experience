@@ -13,6 +13,7 @@ import VisualSystemCanvas, { type VisualStats } from '@/components/visual/Visual
 import PerfOverlay from '@/components/visual/PerfOverlay'
 import VisualErrorBoundary from '@/components/visual/VisualErrorBoundary'
 import { PointerField } from '@/components/visual/pointerField'
+import { JourneyState } from '@/components/visual/journeyState'
 
 /**
  * 레이어 계약
@@ -31,9 +32,9 @@ const RAMP_MS = 1500
 
 export default function Home() {
   const [introComplete, setIntroComplete] = useState(false)
-  const [heroActive, setHeroActive] = useState(true)
   const [intensity, setIntensity] = useState(0.08)   // 인트로 중에는 0~10%
   const pointer = useMemo(() => new PointerField(), [])
+  const journey = useMemo(() => new JourneyState(), [])
   const statsRef = useRef<VisualStats>({
     fps: 0, points: 0, coverage: 0, tier: 0, dpr: 0, frameMs: 0,
     gpuMs: -1, longFrames: 0,
@@ -46,19 +47,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => pointer.attach(window), [pointer])
-
-  /* Hero를 벗어나면 렌더를 멈춘다. 다음 장면에 Hero 프리셋이 남지 않고
-     스크롤 중 고비용 갱신도 사라진다. */
-  useEffect(() => {
-    const el = document.getElementById('hero')
-    if (!el) return
-    const io = new IntersectionObserver(
-      ([e]) => setHeroActive(e.isIntersecting),
-      { rootMargin: '10% 0px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
+  useEffect(() => journey.attach(), [journey])
 
   const handleEntered = () => {
     setIntroComplete(true)
@@ -85,7 +74,8 @@ export default function Home() {
       <VisualErrorBoundary>
         <VisualSystemCanvas
           pointer={pointer}
-          active={heroActive}
+          journey={journey}
+          active
           intensity={intensity}
           onStats={(s) => { statsRef.current = s }}
         />

@@ -34,7 +34,7 @@ export default function MascotScene() {
   const position = progress * (SCENES.length - 1)
 
   return (
-    <div ref={containerRef} className="mascot-story" style={{ height: `${SCENES.length * STAGE_VH}vh` }}>
+    <div id="mascot" ref={containerRef} className="mascot-story" style={{ height: `${SCENES.length * STAGE_VH}vh` }}>
       <section className="mascot-stage" aria-label="파모즈가 만드는 네 가지 경험">
         {SCENES.map((scene, index) => {
           const weight = smooth(1 - Math.abs(position - index))

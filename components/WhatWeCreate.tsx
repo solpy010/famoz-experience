@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import DistortionCanvas from './DistortionCanvas'
 import { subscribeScroll } from './scrollBus'
 
 const STAGES = [
@@ -49,7 +48,6 @@ export default function WhatWeCreate() {
             </div>
           )
         })}
-        <DistortionCanvas color1="#6edfff" color2="#d69cff" mouseForce={0.85} opacity={0.55} />
         <div aria-hidden style={{ position: 'absolute', right: 'clamp(20px,4vw,44px)', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 12, zIndex: 5 }}>
           {STAGES.map((stage, index) => <span key={stage.label} style={{ width: 5, height: 5, borderRadius: '50%', background: index === nearest ? stage.accent : 'rgba(170,190,225,.28)', transform: index === nearest ? 'scale(1.5)' : 'scale(1)', transition: 'background .45s ease, transform .45s ease' }} />)}
         </div>

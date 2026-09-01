@@ -1,5 +1,4 @@
 'use client'
-import DistortionCanvas from './DistortionCanvas'
 
 const signs = [
   { id: 'A-01', text: '복잡한 정보의\n직관적 전달' },
@@ -31,8 +30,6 @@ export default function PublicValue() {
           `,
         }}
       />
-
-      <DistortionCanvas color1="#69E2FF" color2="#FFD46F" mouseForce={0.82} opacity={0.48} />
 
       {/* Mid layer: network light nodes expanding */}
       <div

@@ -174,6 +174,9 @@ export const splatVert = /* glsl */`
   uniform float uLayerFilter;   /* -1 전부, 0 far, 1 mid, 2 near */
   uniform float uSplatAniso, uAspect, uSheetBind;
   uniform vec2  uSpan;
+  uniform vec2  uJourneyOffset, uJourneyFlow;
+  uniform vec3  uJourneyColor;
+  uniform float uJourneyYaw, uJourneyZoom, uJourneyDensity, uJourneyResponse;
   uniform vec2  uLightOrigin;
   uniform float uLightZ;
 
@@ -218,8 +221,17 @@ export const splatVert = /* glsl */`
                          cos(phase + aSeed * 3.1) * .12) * uBaseCurlStrength;
     pos.y += lane + wave * (.045 + depth * .10);
 
+    /* 장면은 새 입자를 만드는 대신 같은 세계의 다른 측면을 본다. yaw는 깊이
+       축을 바꾸고, offset/zoom/flow는 관찰 위치와 진행 방향을 연속 이동시킨다. */
+    float jy = uJourneyYaw * (0.72 + depth * 0.28);
+    mat2 journeyRot = mat2(cos(jy), -sin(jy), sin(jy), cos(jy));
+    pos.xz = journeyRot * pos.xz;
+    pos.xy = pos.xy / uJourneyZoom + uJourneyOffset * (0.75 + depth * 0.25);
+    pos.xy += uJourneyFlow * travel * 0.22;
+
     float exposure;
-    pos.xy += strokeForce(pos.xy, lag, fsc, tau, exposure) * (0.55 + depth * 0.85);
+    pos.xy += strokeForce(pos.xy, lag, fsc, tau, exposure)
+            * (0.55 + depth * 0.85) * uJourneyResponse;
     float organizedRidge;
     pos.xy += organizeField(pos.xy, depth, aSeed, organizedRidge);
 
@@ -247,6 +259,7 @@ export const splatVert = /* glsl */`
     color *= isFar * 0.82 + isMid * 1.34 + isNear * 1.02;
     /* mid는 광원에 닿은 일부만 선명해진다 */
     color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
+    color *= mix(vec3(1.0), uJourneyColor, 0.62);
     /* 구조의 경계만 제한적으로 드러낸다. 중심 광구나 전 화면 Bloom은 없다. */
     color *= 1.0 + organizedRidge * (uDwell * 0.34 + uMemory * 0.14);
 
@@ -263,6 +276,7 @@ export const splatVert = /* glsl */`
             /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
             * (1.0 - isFar * 0.24);
     a *= 1.0 + organizedRidge * (uDwell * 0.46 + uMemory * 0.14);
+    a *= uJourneyDensity;
     a *= 1.0 - uContentSuppress * brightW * soft;
 
     /* A. Core Occlusion — 실루엣 내부는 입자가 보이지 않는다 */

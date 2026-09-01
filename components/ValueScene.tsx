@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import DistortionCanvas from './DistortionCanvas'
 import { subscribeScroll } from './scrollBus'
 
 const VALUE_ITEMS = [
@@ -43,9 +42,6 @@ export default function ValueScene() {
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: 'radial-gradient(ellipse 66% 58% at 22% 42%, rgba(255,108,61,.22) 0%, rgba(255,190,72,.10) 48%, transparent 76%)',
         }} />
-
-        {/* Canvas distortion — warm orange/magenta */}
-        <DistortionCanvas color1="#FF8A62" color2="#FFD06F" mouseForce={0.82} opacity={0.52} />
 
         <div className="shell" data-guard style={{ position: 'relative', zIndex: 'var(--z-content)', width: '100%' }}>
           <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 'clamp(2.5rem, 5vh, 4rem)' }}>

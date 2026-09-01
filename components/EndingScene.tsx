@@ -39,7 +39,7 @@ export default function EndingScene() {
       style={{
         position: 'relative',
         overflow: 'hidden',
-        background: 'linear-gradient(180deg, #07101f 0%, #17142d 42%, #24172f 72%, #2d1b2c 100%)',
+        background: 'linear-gradient(180deg, rgba(7,16,31,.78) 0%, rgba(23,20,45,.72) 42%, rgba(36,23,47,.70) 72%, rgba(45,27,44,.76) 100%)',
         paddingBlock: 'var(--section-gap)',
       }}
     >

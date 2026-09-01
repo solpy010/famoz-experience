@@ -8,6 +8,7 @@ import { splatVert, splatFrag, fogVert, fogFrag } from './particleShaders'
 import { MaskField } from './maskField'
 import { spaceVert, spaceFrag } from './spaceFieldShader'
 import type { PointerField } from './pointerField'
+import type { JourneyState } from './journeyState'
 
 /**
  * L3 (Fog) + L4 (Gaussian Splat) 을 담는 단일 Canvas.  z-index 3.
@@ -40,12 +41,14 @@ export type VisualStats = {
 
 export default function VisualSystemCanvas({
   pointer,
+  journey,
   active = true,
   intensity = 1,
   onStats,
   onUnavailable,
 }: {
   pointer: PointerField
+  journey?: JourneyState
   /** false면 렌더를 멈춘다. Hero를 벗어났을 때 고비용 갱신을 끊는 용도. */
   active?: boolean
   /** 0~1. 인트로에서 파티클 밀도와 공간면을 올리는 램프. */
@@ -151,6 +154,13 @@ export default function VisualSystemCanvas({
       uExposure:        { value: visualParams.exposureResponse },
       uContentSuppress: { value: visualParams.contentSuppression },
       uView:            { value: 0 },
+      uJourneyOffset:   { value: new THREE.Vector2() },
+      uJourneyFlow:     { value: new THREE.Vector2(1, 0) },
+      uJourneyColor:    { value: new THREE.Vector3(1, 1, 1) },
+      uJourneyYaw:      { value: 0 },
+      uJourneyZoom:     { value: 1 },
+      uJourneyDensity:  { value: 1 },
+      uJourneyResponse: { value: 1 },
     })
 
     const splatUnis = {
@@ -334,6 +344,17 @@ export default function VisualSystemCanvas({
     let wasActive = activeRef.current
     let longFrames = 0
     const v3 = (t: THREE.Vector3, s: [number, number, number]) => t.set(s[0], s[1], s[2])
+    /* 하나의 세계를 여섯 방향에서 본다. 색만 바꾸지 않고 yaw/offset/zoom/
+       flow/density/response를 함께 보간해 공간의 측면과 작동 방식이 달라진다. */
+    const journeyViews = [
+      { yaw: 0.00, zoom: 1.00, off: [0.00, 0.00], flow: [ 1.00, 0.10], density: 1.00, response: 1.05, color: [0.84,0.88,1.12] },
+      { yaw: 0.38, zoom: 1.12, off: [-0.18,0.08], flow: [ 0.78, 0.46], density: 1.18, response: 1.18, color: [1.18,0.76,0.56] },
+      { yaw:-0.52, zoom: 1.22, off: [0.20,-0.04], flow: [ 0.42, 0.92], density: 1.32, response: 1.28, color: [1.16,0.88,0.52] },
+      { yaw: 0.76, zoom: 1.34, off: [-0.10,0.14], flow: [-0.36,0.94], density: 1.48, response: 1.45, color: [0.54,1.14,1.06] },
+      { yaw:-0.30, zoom: 0.92, off: [0.12,-0.12], flow: [-0.92,0.24], density: 1.14, response: 1.12, color: [0.92,1.04,0.88] },
+      { yaw: 0.12, zoom: 0.82, off: [0.00,0.02], flow: [ 0.60,-0.28], density: 0.92, response: 0.92, color: [1.10,0.90,0.72] },
+    ] as const
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
     const frame = () => {
       raf = requestAnimationFrame(frame)
@@ -361,9 +382,15 @@ export default function VisualSystemCanvas({
       if (visualEvents.rebuild !== lastRebuild) { lastRebuild = visualEvents.rebuild; rebuild() }
 
       pointer.update(dt)
+      journey?.update(dt)
       const p = visualParams
       const gain = Math.max(0, Math.min(1, intensityRef.current))
       const viewIdx = VIEW_INDEX[p.view]
+      const journeyPos = Math.max(0, Math.min(5, journey?.position ?? 0))
+      const sceneA = Math.min(4, Math.floor(journeyPos))
+      const sceneT0 = journeyPos - sceneA
+      const sceneT = sceneT0 * sceneT0 * (3 - 2 * sceneT0)
+      const ja = journeyViews[sceneA], jb = journeyViews[sceneA + 1]
 
       // 포인터 반경은 화면 너비 비율 → 월드 단위
       const radiusWorld = p.pointerRadius * span.x * 2
@@ -387,6 +414,18 @@ export default function VisualSystemCanvas({
         u.uReflectance.value = p.reflectance
         u.uExposure.value = p.exposureResponse
         u.uView.value = viewIdx
+        ;(u.uJourneyOffset.value as THREE.Vector2).set(
+          lerp(ja.off[0], jb.off[0], sceneT), lerp(ja.off[1], jb.off[1], sceneT))
+        ;(u.uJourneyFlow.value as THREE.Vector2).set(
+          lerp(ja.flow[0], jb.flow[0], sceneT), lerp(ja.flow[1], jb.flow[1], sceneT)).normalize()
+        ;(u.uJourneyColor.value as THREE.Vector3).set(
+          lerp(ja.color[0], jb.color[0], sceneT),
+          lerp(ja.color[1], jb.color[1], sceneT),
+          lerp(ja.color[2], jb.color[2], sceneT))
+        u.uJourneyYaw.value = lerp(ja.yaw, jb.yaw, sceneT)
+        u.uJourneyZoom.value = lerp(ja.zoom, jb.zoom, sceneT)
+        u.uJourneyDensity.value = lerp(ja.density, jb.density, sceneT)
+        u.uJourneyResponse.value = lerp(ja.response, jb.response, sceneT)
         v3(u.uMainLight.value as THREE.Vector3, p.mainLight)
         v3(u.uMainColor.value as THREE.Vector3, p.mainLightColor)
         v3(u.uSideLight.value as THREE.Vector3, p.sideLight)
@@ -502,7 +541,7 @@ export default function VisualSystemCanvas({
       renderer.dispose()
       gpuQueries.forEach(q => gl.deleteQuery(q))
     }
-  }, [pointer])
+  }, [pointer, journey])
 
   return (
     <canvas
