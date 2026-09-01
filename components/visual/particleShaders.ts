@@ -36,6 +36,23 @@ const STROKE_GLSL = /* glsl */`
     exposure = 0.0;
     const float GAIN = 26.0;
 
+    /* live head — 현재 smooth pointer와 마지막 기록점 사이를 매 프레임 계산한다.
+       기록점은 잔상 보존을 위해 0.18초 간격이지만, 영향 중심까지 그 간격으로
+       점프하면 60fps에서도 5.5Hz 끊김으로 보인다. */
+    vec2 liveSeg = uFocus - uStrokes[0].xy;
+    float liveLen = length(liveSeg);
+    vec2 liveDir = liveSeg / max(liveLen, 1e-4);
+    vec2 livePerp = vec2(-liveDir.y, liveDir.x);
+    vec2 liveC = closestPointOnSegment(p, uStrokes[0].xy, uFocus);
+    float liveD = distance(p, liveC);
+    float liveInfl = exp(-(liveD * liveD) / max(uPointerRadius * uPointerRadius, 1e-5));
+    float liveSpeed = min(length(uPointerVelocity), uMaxPointerSpeed) * GAIN;
+    float liveValid = step(0.5, uStrokeCount) * step(0.0001, liveLen);
+    float liveSide = sign(dot(p - liveC, livePerp) + 1e-6);
+    float liveW = liveInfl * liveSpeed * forceScale * liveValid;
+    disp += (liveDir * uPointerForce + livePerp * liveSide * uSwirl) * liveW;
+    exposure += liveW;
+
     for (int i = 0; i < ${MAX_STROKE - 1}; i++){
       vec4 A = uStrokes[i];      /* 최신 */
       vec4 B = uStrokes[i + 1];  /* 이전 */
@@ -76,14 +93,14 @@ const STROKE_GLSL = /* glsl */`
     vec2 q = p - uFocus;
     q.x /= 1.48;
     float d = length(q);
-    float target = uPointerRadius * mix(0.42, 0.82, depth)
+    float target = uPointerRadius * mix(0.38, 0.94, depth)
                  * (0.92 + sin(seed * 6.283) * 0.08);
     float local = exp(-(d * d) / max(uPointerRadius * uPointerRadius * 2.4, 1e-4));
     ridge = exp(-pow((d - target) / max(uPointerRadius * 0.18, 0.02), 2.0));
     vec2 n = q / max(d, 1e-4);
     n.x /= 1.48;
-    float phase = uDwell * 0.72 + uMemory * 0.34;
-    vec2 settle = -n * (d - target) * local * phase * (0.26 + depth * 0.22);
+    float phase = uDwell * 0.92 + uMemory * 0.42;
+    vec2 settle = -n * (d - target) * local * phase * (0.48 + depth * 0.34);
     /* 최근 진행 방향을 따라 통로가 조금 열리되, 카메라나 전체 공간은 움직이지 않는다. */
     vec2 tangent = length(uPointerVelocity) > 1e-5
       ? normalize(uPointerVelocity) : vec2(1.0, 0.0);
@@ -228,7 +245,7 @@ export const splatVert = /* glsl */`
     /* mid는 광원에 닿은 일부만 선명해진다 */
     color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
     /* 구조의 경계만 제한적으로 드러낸다. 중심 광구나 전 화면 Bloom은 없다. */
-    color *= 1.0 + organizedRidge * (uDwell * 0.18 + uMemory * 0.08);
+    color *= 1.0 + organizedRidge * (uDwell * 0.34 + uMemory * 0.14);
 
     /* B. Soft Safety Field — 밝은 입자일수록 강하게 감쇠한다.
        어두운 입자는 남겨 검은 구멍이 생기지 않게 한다. */
@@ -242,7 +259,7 @@ export const splatVert = /* glsl */`
             * (0.48 + ridge * 0.82) * (0.62 + depth * 0.38)
             /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
             * (1.0 - isFar * 0.24);
-    a *= 1.0 + organizedRidge * uDwell * 0.24;
+    a *= 1.0 + organizedRidge * (uDwell * 0.46 + uMemory * 0.14);
     a *= 1.0 - uContentSuppress * brightW * soft;
 
     /* A. Core Occlusion — 실루엣 내부는 입자가 보이지 않는다 */

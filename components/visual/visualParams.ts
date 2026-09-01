@@ -119,7 +119,7 @@ export const DEFAULT_PARAMS: VisualParams = {
   sizeScale: 0.88,
   gaussianSoftness: 1.12,
   opacity: 1.0,
-  reflectance: 0.76,
+  reflectance: 0.96,
   additiveRatio: 0,
 
   baseCurlScale: 0.26,
@@ -127,11 +127,11 @@ export const DEFAULT_PARAMS: VisualParams = {
   pointerSmoothing: 0.028,
   velocitySmoothing: 0.09,
   pointerRadius: 0.12,
-  pointerForce: 0.44,
+  pointerForce: 0.58,
   velocityDamping: 0.968,
   wakeTau: 1.7,
-  maxDisplacement: 0.30,
-  swirl: 0.25,
+  maxDisplacement: 0.36,
+  swirl: 0.31,
   maxPointerSpeed: 0.045,
 
   /* 팔레트는 지시서 §3 Hero 기본값에서만 고른다.
@@ -141,7 +141,7 @@ export const DEFAULT_PARAMS: VisualParams = {
   sideLight:       [ 2.05, -0.50, -1.0],
   sideLightColor:  [0.760, 0.690, 0.900],  // pale lavender
   sideLevel: 0.20,
-  ambient:         [0.040, 0.072, 0.150],
+  ambient:         [0.060, 0.094, 0.185],
   /* 입자의 기본색은 저채도. 빛에 닿을 때만 lavender/amber가 반사색으로 뜬다. */
   albedoNear:      [0.785, 0.835, 1.000],
   albedoFar:       [0.330, 0.540, 0.900],
