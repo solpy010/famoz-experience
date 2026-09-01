@@ -126,6 +126,10 @@ export default function VisualSystemCanvas({
       uStrokes:         { value: strokes },
       uStrokeCount:     { value: 0 },
       uPointerRadius:   { value: 0.6 },
+      uFocus:           { value: new THREE.Vector2() },
+      uPointerVelocity: { value: new THREE.Vector2() },
+      uDwell:           { value: 0 },
+      uMemory:          { value: 0 },
       uPointerForce:    { value: visualParams.pointerForce },
       uMaxDisp:         { value: visualParams.maxDisplacement },
       uSwirl:           { value: visualParams.swirl },
@@ -368,6 +372,10 @@ export default function VisualSystemCanvas({
         u.uTime.value = time
         u.uStrokeCount.value = pointer.strokeCount
         u.uPointerRadius.value = radiusWorld
+        ;(u.uFocus.value as THREE.Vector2).copy(pointer.smooth)
+        ;(u.uPointerVelocity.value as THREE.Vector2).copy(pointer.smoothVelocity)
+        u.uDwell.value = pointer.dwell
+        u.uMemory.value = pointer.memory
         u.uPointerForce.value = p.pointerForce
         u.uMaxDisp.value = p.maxDisplacement
         u.uSwirl.value = p.swirl

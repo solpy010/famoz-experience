@@ -21,6 +21,8 @@ const STROKE_GLSL = /* glsl */`
   uniform vec4  uStrokes[${MAX_STROKE}];   /* x, y, age, speed */
   uniform float uStrokeCount;
   uniform float uPointerRadius, uPointerForce, uMaxDisp, uSwirl, uMaxPointerSpeed;
+  uniform vec2  uFocus, uPointerVelocity;
+  uniform float uDwell, uMemory;
 
   vec2 closestPointOnSegment(vec2 p, vec2 a, vec2 b){
     vec2 ab = b - a;
@@ -66,6 +68,27 @@ const STROKE_GLSL = /* glsl */`
     float L = length(disp);
     disp = L > uMaxDisp ? disp * (uMaxDisp / L) : disp;
     return disp;
+  }
+
+  /* 포인터 체류 시 깊이마다 다른 타원형 공간면을 만든다. 중심 집결이 아니라
+     비어 있는 통로 + 세 겹 경계를 만들며 memory가 해체 전 잔상을 담당한다. */
+  vec2 organizeField(vec2 p, float depth, float seed, out float ridge){
+    vec2 q = p - uFocus;
+    q.x /= 1.48;
+    float d = length(q);
+    float target = uPointerRadius * mix(0.42, 0.82, depth)
+                 * (0.92 + sin(seed * 6.283) * 0.08);
+    float local = exp(-(d * d) / max(uPointerRadius * uPointerRadius * 2.4, 1e-4));
+    ridge = exp(-pow((d - target) / max(uPointerRadius * 0.18, 0.02), 2.0));
+    vec2 n = q / max(d, 1e-4);
+    n.x /= 1.48;
+    float phase = uDwell * 0.72 + uMemory * 0.34;
+    vec2 settle = -n * (d - target) * local * phase * (0.26 + depth * 0.22);
+    /* 최근 진행 방향을 따라 통로가 조금 열리되, 카메라나 전체 공간은 움직이지 않는다. */
+    vec2 tangent = length(uPointerVelocity) > 1e-5
+      ? normalize(uPointerVelocity) : vec2(1.0, 0.0);
+    settle += tangent * ridge * uMemory * (seed - 0.5) * 0.055;
+    return settle;
   }
 `
 
@@ -177,6 +200,8 @@ export const splatVert = /* glsl */`
 
     float exposure;
     pos.xy += strokeForce(pos.xy, lag, fsc, tau, exposure) * (0.55 + depth * 0.85);
+    float organizedRidge;
+    pos.xy += organizeField(pos.xy, depth, aSeed, organizedRidge);
 
     vec4 mv   = modelViewMatrix * vec4(pos, 1.0);
     vec4 clip = projectionMatrix * mv;
@@ -202,6 +227,8 @@ export const splatVert = /* glsl */`
     color *= isFar * 0.82 + isMid * 1.34 + isNear * 1.02;
     /* mid는 광원에 닿은 일부만 선명해진다 */
     color *= 1.0 + isMid * smoothstep(0.25, 0.9, lit) * 0.5;
+    /* 구조의 경계만 제한적으로 드러낸다. 중심 광구나 전 화면 Bloom은 없다. */
+    color *= 1.0 + organizedRidge * (uDwell * 0.18 + uMemory * 0.08);
 
     /* B. Soft Safety Field — 밝은 입자일수록 강하게 감쇠한다.
        어두운 입자는 남겨 검은 구멍이 생기지 않게 한다. */
@@ -215,6 +242,7 @@ export const splatVert = /* glsl */`
             * (0.48 + ridge * 0.82) * (0.62 + depth * 0.38)
             /* far는 "일부만 표시". 저대비로 남기고 별가루가 되지 않게 한다. */
             * (1.0 - isFar * 0.24);
+    a *= 1.0 + organizedRidge * uDwell * 0.24;
     a *= 1.0 - uContentSuppress * brightW * soft;
 
     /* A. Core Occlusion — 실루엣 내부는 입자가 보이지 않는다 */

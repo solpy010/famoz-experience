@@ -31,6 +31,10 @@ export class PointerField {
   smoothVelocity = new THREE.Vector2()
   activity = 0
   idleTime = 0
+  /** 느린 탐색/체류가 공간 구조로 바뀌는 0..1 신호와 그 잔상 */
+  dwell = 0
+  memory = 0
+  inside = false
 
   /** (x, y, age, speed) — 셰이더 uniform으로 그대로 올린다 */
   strokes: THREE.Vector4[] = Array.from({ length: MAX_STROKE }, () => new THREE.Vector4(0, 0, 999, 0))
@@ -68,10 +72,16 @@ export class PointerField {
       this.pendingX = e.clientX
       this.pendingY = e.clientY
       this.hasPending = true
+      this.inside = true
     }
+    const onLeave = () => { this.inside = false }
     const t = target as Window
     t.addEventListener('pointermove', onMove as EventListener, { passive: true })
-    return () => t.removeEventListener('pointermove', onMove as EventListener)
+    t.addEventListener('pointerleave', onLeave as EventListener, { passive: true })
+    return () => {
+      t.removeEventListener('pointermove', onMove as EventListener)
+      t.removeEventListener('pointerleave', onLeave as EventListener)
+    }
   }
 
   update(dt: number) {
@@ -115,6 +125,15 @@ export class PointerField {
     const speed = this.smoothVelocity.length()
     this.idleTime = inputActive ? 0 : this.idleTime + dt
     this.activity += ((inputActive ? 1 : 0) - this.activity) * Math.min(1, dt * 3)
+
+    /* 체류는 밝은 자석 점을 만들기 위한 값이 아니다. 움직임이 충분히 느리고
+       0.22초 이상 한 영역을 탐색했을 때만 공간면 정렬을 시작한다. 이동하면
+       dwell은 빠르게 풀리고 memory만 2~3초 남아 사용자의 흔적을 보존한다. */
+    const settled = this.inside && this.seeded && this.idleTime > 0.22 && speed < 0.006
+    const dwellTarget = settled ? 1 : 0
+    const dwellRate = dwellTarget > this.dwell ? 1.25 : 3.8
+    this.dwell += (dwellTarget - this.dwell) * Math.min(1, dt * dwellRate)
+    this.memory = Math.max(this.memory * Math.pow(0.972, k), this.dwell * 0.92)
 
     const sample = this.history[this.historyHead]
     sample.t = this.clock
