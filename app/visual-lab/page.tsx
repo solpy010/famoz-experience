@@ -32,6 +32,18 @@ export default function VisualLab() {
 
   useEffect(() => pointer.attach(window), [pointer])
 
+  /* ?diagnostic=1은 사용자가 Leva 패널을 직접 찾지 않아도 즉시 가시성 게이트를
+     볼 수 있는 단일 진입점이다. 배경·타이포를 끄고 깊이 진단색만 남긴다. */
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('diagnostic')) return
+    visualParams.view = 'dist'
+    const node = document.getElementById('lab-debug')
+    if (node) {
+      node.dataset.view = 'dist'
+      node.dataset.panel = 'off'
+    }
+  }, [])
+
   /* 검수용 DOM 브리지.
      헤드리스 드라이버(patchright)는 스텔스를 위해 evaluate를 격리 JS 컨텍스트에서
      실행하므로 페이지가 window에 붙인 값이 보이지 않는다. DOM은 공유되므로
