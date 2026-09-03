@@ -1,5 +1,10 @@
 # Claude 작업 인수인계 — OZ 구조 개발 단계
 
+> **중요 — 이 문서의 구조 확장 작업은 잠정 중단됨.**
+> 최신 사용자 피드백에 따른 정보구조 재설계는
+> [`CLAUDE_IA_RESTRUCTURE.md`](./CLAUDE_IA_RESTRUCTURE.md)를 먼저 따른다.
+> 공유 WebGL·자산 슬롯·폴백 관련 기술 계약만 이 문서에서 참고한다.
+
 기준일: 2026-09-03  
 작업 브랜치: `fix/hero-canvas-clear`
 
