@@ -8,6 +8,8 @@ import PublicValue from '@/components/PublicValue'
 import WorksFilm from '@/components/WorksFilm'
 import MascotScene from '@/components/MascotScene'
 import EndingScene from '@/components/EndingScene'
+import OzPortalHub from '@/components/OzPortalHub'
+import ChapterNavigation from '@/components/ChapterNavigation'
 import SectionBackdrop from '@/components/SectionBackdrop'
 import VisualSystemCanvas, { type VisualStats } from '@/components/visual/VisualSystemCanvas'
 import PerfOverlay from '@/components/visual/PerfOverlay'
@@ -82,14 +84,18 @@ export default function Home() {
         />
       </VisualErrorBoundary>
       {!introComplete && <IntroSequence onEntered={handleEntered} />}
+      <ChapterNavigation visible={introComplete} />
 
-      <HeroScene introComplete={introComplete} />
-      <MascotScene />
-      <WhatWeCreate />
-      <ValueScene />
-      <PublicValue />
-      <WorksFilm />
-      <EndingScene />
+      <main data-experience-schema="famoz-oz-v1">
+        <HeroScene introComplete={introComplete} />
+        <OzPortalHub />
+        <MascotScene />
+        <WhatWeCreate />
+        <ValueScene />
+        <PublicValue />
+        <WorksFilm />
+        <EndingScene />
+      </main>
 
       {process.env.NODE_ENV !== 'production' && (
         <PerfOverlay statsRef={statsRef} preset="hero" />

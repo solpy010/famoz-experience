@@ -35,6 +35,8 @@ export default function EndingScene() {
   return (
     <section
       id="ending"
+      data-experience-chapter="contact"
+      data-resource-slot="behind-scenes-contact"
       style={{
         position: 'relative',
         overflow: 'hidden',

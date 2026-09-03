@@ -211,6 +211,8 @@ export default function WorksFilm() {
     <div
       ref={containerRef}
       id="works"
+      data-experience-chapter="works"
+      data-resource-slot="showreel-bridge"
       style={{ position: 'relative', height: `${TOTAL_VH}vh`, background: 'transparent' }}
     >
       <div style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden' }}>

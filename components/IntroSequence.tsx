@@ -197,6 +197,8 @@ export default function IntroSequence({ onEntered }: Props) {
         ref={overlayRef}
         id="intro-overlay"
         aria-hidden="true"
+        data-resource-slot="intro-scroll-film"
+        data-poster-slot="oz-portal-poster"
         style={{ transition: 'opacity 0.8s ease' }}
       />
 

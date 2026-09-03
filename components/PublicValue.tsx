@@ -12,6 +12,7 @@ export default function PublicValue() {
   return (
     <section
       id="public"
+      data-experience-support="public-value"
       style={{
         position: 'relative', overflow: 'hidden',
         background: 'transparent', paddingBlock: 'var(--section-gap)',

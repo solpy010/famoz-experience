@@ -30,7 +30,7 @@ export default function ValueScene() {
   const beamFill = Math.max(0, Math.min(1, (progress - 0.04) / 0.88))
 
   return (
-    <div ref={wrapRef} id="value" style={{ position: 'relative', height: '500vh' }}>
+    <div ref={wrapRef} id="value" data-experience-support="visitor-value" style={{ position: 'relative', height: '500vh' }}>
       <section style={{
         position: 'sticky', top: 0,
         height: '100svh', overflow: 'hidden',

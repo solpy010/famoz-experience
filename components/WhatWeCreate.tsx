@@ -29,7 +29,7 @@ export default function WhatWeCreate() {
   const nearest = Math.round(position)
 
   return (
-    <div id="what" ref={containerRef} className="scene-flow" style={{ position: 'relative', height: '520vh' }}>
+    <div id="what" ref={containerRef} className="scene-flow" data-experience-support="capability-detail" style={{ position: 'relative', height: '520vh' }}>
       <section style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden', display: 'flex', alignItems: 'center', background: 'transparent' }}>
         {STAGES.map((stage, index) => {
           const weight = ease(1 - Math.abs(position - index))
