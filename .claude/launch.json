@@ -2,22 +2,33 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "prod-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "start"
+      ],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
       "name": "famoz-landing",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev", "--port", "3001"],
+      "runtimeArgs": [
+        "next",
+        "dev",
+        "--port",
+        "3001"
+      ],
       "port": 3001
     },
     {
       "name": "visual-lab",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev"],
-      "port": 3000,
-      "autoPort": true
-    },
-    {
-      "name": "prod-preview",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "start"],
+      "runtimeArgs": [
+        "next",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     }
