@@ -1,4 +1,5 @@
 import { EXPERIENCE_CHAPTERS } from '@/content/experienceManifest'
+import ResourceSlot from './ResourceSlot'
 
 const CHARACTERS = {
   dorothy: '/mascot/dorothy.png',
@@ -17,9 +18,9 @@ const chapters = EXPERIENCE_CHAPTERS.filter((chapter) => chapter.character)
 export default function OzPortalHub() {
   return (
     <section id="portal" className="oz-portal" data-experience-chapter="portal">
-      <div className="oz-portal__media" aria-hidden="true" data-resource-slot="oz-portal-poster">
+      <ResourceSlot id="oz-portal-poster" className="oz-portal__media" active aria-hidden="true">
         <span className="oz-portal__aperture" />
-      </div>
+      </ResourceSlot>
 
       <div className="shell oz-portal__layout" data-guard>
         <div className="oz-portal__copy">
@@ -41,10 +42,10 @@ export default function OzPortalHub() {
               style={{ '--route-accent': chapter.accent } as React.CSSProperties}
             >
               <span className="oz-portal__route-number">{chapter.number}</span>
-              <span className="oz-portal__route-figure" data-resource-slot={chapter.id === 'dorothy' ? 'dorothy-character' : 'character-group'}>
+              <ResourceSlot id={chapter.id === 'dorothy' ? 'dorothy-character' : 'character-group'} className="oz-portal__route-figure">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={CHARACTERS[chapter.id as keyof typeof CHARACTERS]} alt="" decoding="async" loading="lazy" />
-              </span>
+              </ResourceSlot>
               <span className="oz-portal__route-copy">
                 <small>{chapter.character}</small>
                 <strong>{chapter.role}</strong>

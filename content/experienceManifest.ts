@@ -15,6 +15,10 @@ export type ExperienceAssetSlot = {
   direction: string
   safeArea: string
   deliveryName: string
+  /* 실제 파일이 도착하면 여기에만 경로를 채운다. 슬롯 id는 바꾸지 않는다. */
+  desktopSrc?: string
+  mobileSrc?: string
+  posterSrc?: string
 }
 
 export type ExperienceChapter = {
@@ -107,10 +111,10 @@ export const EXPERIENCE_ASSETS: ExperienceAssetSlot[] = [
 
 export const EXPERIENCE_CHAPTERS: ExperienceChapter[] = [
   { id: 'portal', number: '00', role: 'FAMOZ WORLD', headline: '상상을 연결하고, 경험을 변화시킵니다.', description: 'OZ 문을 중심으로 네 역량을 선택하거나 일반 스크롤로 전체 여정을 이어갑니다.', accent: '#c898bd', assetSlots: ['intro-scroll-film', 'oz-portal-poster', 'character-group'] },
-  { id: 'dorothy', number: '01', character: '도로시', role: 'PLANNING & DESIGN', headline: '아이디어가 공간을 설계합니다.', description: '방문자의 여정을 관찰하고 콘텐츠·동선·매체를 하나의 경험 구조로 설계합니다.', accent: '#ffb47f', assetSlots: ['dorothy-environment', 'dorothy-character'] },
-  { id: 'scaremuse', number: '02', character: 'ScareMuse', role: 'IMMERSIVE MEDIA', headline: '이야기가 공간 전체로 펼쳐집니다.', description: '영상·빛·사운드가 관람 동선과 만나 하나의 몰입 장면을 만듭니다.', accent: '#91efc8', assetSlots: ['scaremuse-transition', 'chapter-posters'] },
-  { id: 'roarlink', number: '03', character: 'RoarLink', role: 'INTERACTIVE MEDIA', headline: '공간의 주인공은 언제나 당신입니다.', description: '사용자의 움직임과 선택이 공간을 작동시키고 새로운 장면을 엽니다.', accent: '#ffad66', assetSlots: ['roarlink-transition', 'chapter-posters'] },
-  { id: 'tinai', number: '04', character: 'TinAI', role: 'AI PRODUCTION & SOLUTION', headline: 'AI가 공간을 진화시킵니다.', description: '기술을 드러내기보다 행동을 감지하고 경험을 조직하는 보이지 않는 생명력으로 사용합니다.', accent: '#8fd8ff', assetSlots: ['tinai-transition', 'chapter-posters'] },
+  { id: 'dorothy', number: '01', character: '도로시', role: 'PLANNING & DESIGN', headline: '아이디어가\n공간을 설계합니다.', description: '방문자의 여정을 관찰하고 콘텐츠·동선·매체를 하나의 경험 구조로 설계합니다.', accent: '#ffb47f', assetSlots: ['dorothy-environment', 'dorothy-character'] },
+  { id: 'scaremuse', number: '02', character: 'ScareMuse', role: 'IMMERSIVE MEDIA', headline: '이야기가 공간 전체로\n펼쳐집니다.', description: '영상·빛·사운드가 관람 동선과 만나 하나의 몰입 장면을 만듭니다.', accent: '#91efc8', assetSlots: ['scaremuse-transition', 'chapter-posters'] },
+  { id: 'roarlink', number: '03', character: 'RoarLink', role: 'INTERACTIVE MEDIA', headline: '공간의 주인공은\n언제나 당신입니다.', description: '사용자의 움직임과 선택이 공간을 작동시키고 새로운 장면을 엽니다.', accent: '#ffad66', assetSlots: ['roarlink-transition', 'chapter-posters'] },
+  { id: 'tinai', number: '04', character: 'TinAI', role: 'AI PRODUCTION & SOLUTION', headline: 'AI가 공간을\n진화시킵니다.', description: '기술을 드러내기보다 행동을 감지하고 경험을 조직하는 보이지 않는 생명력으로 사용합니다.', accent: '#8fd8ff', assetSlots: ['tinai-transition', 'chapter-posters'] },
   { id: 'works', number: '05', role: 'SELECTED WORKS', headline: '체험의 순간이 기억이 됩니다.', description: '추상적인 세계관이 실제 프로젝트 결과로 응집되는 증명의 공간입니다.', accent: '#ffe086', assetSlots: ['showreel-bridge'] },
   { id: 'contact', number: '06', role: 'TRUST · TEAM · CONTACT', headline: '상상을 현실로 만드는 사람들과 연결됩니다.', description: '환상 공간에서 실제 제작 현장으로 물러나며 회사·팀·연락처를 보여줍니다.', accent: '#ffd0a0', assetSlots: ['behind-scenes-contact'] },
 ]
