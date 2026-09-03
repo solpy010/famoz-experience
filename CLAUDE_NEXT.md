@@ -78,6 +78,59 @@
 - `prefers-reduced-motion`에서는 영상 대신 poster 슬롯 사용
 - 빈 슬롯 안내 문구는 일반 방문자 화면에 노출하지 않음
 
+## 4-1. 처리 완료 (2026-09-03)
+
+`npm run build` 통과. 아래는 실제로 실행해 확인한 결과다.
+
+### 변경 파일
+
+| 파일 | 내용 |
+|---|---|
+| `content/experienceManifest.ts` | 헤드라인 줄바꿈을 단일 소스로 이동, `desktopSrc`/`mobileSrc`/`posterSrc` 선택 필드 추가 |
+| `components/ResourceSlot.tsx` | 신규. 자산 슬롯 로더 |
+| `components/MascotScene.tsx` | 카피를 manifest에서 읽음. 로컬에는 시각 자산만 남김 |
+| `components/OzPortalHub.tsx` | 슬롯을 `ResourceSlot`으로 교체 |
+| `app/globals.css` | 포커스 링 복원 2곳 |
+| `scripts/check-assets.mjs` | 신규. 자산 규격 검증 (`npm run check:assets`) |
+| `package.json` | `check:assets` 스크립트 |
+
+### ResourceSlot 계약
+
+경로가 없으면 `children`(기존 이미지·CSS 공간)을 그대로 쓴다. 그래서 자산이
+도착하기 전에도 화면이 달라지지 않는다.
+
+- 영상 `preload="none" muted playsInline`, `active`일 때만 `src`를 붙인다 →
+  보이지 않는 장면은 내려받지 않는다
+- `prefers-reduced-motion`이면 영상 대신 poster
+- 로드 실패 시 poster → children 순으로 물러남
+
+### 검증 결과
+
+| 항목 | 결과 |
+|---|---|
+| 해시 직접 진입 (`#chapter-tinai`, `#works`, `#ending`) | 정상 (anchorTop 0~1) |
+| 브라우저 뒤로가기 | 정상 (스크롤·해시 복원) |
+| `aria-current` | 1개만 활성 |
+| 키보드 포커스 링 | **수정함.** `outline: none`이라 색만 바뀌었음 → `solid 2px` |
+| 모바일 하단 레일 | Contact 링크 가림 없음 (해당 구간에서 레일 비표시) |
+| WebGL 없음 | 섹션 7개·포털 4개 카드·카피 모두 읽힘, 오류 0·404 0 |
+| reduced-motion | 섹션 7개, 영상 0, 카피 표시, 오류 0·404 0 |
+| 빈 슬롯 안내 문구 | 방문자 화면에 노출 안 됨 |
+
+### 남은 TODO
+
+- `IntroSequence`·`EndingScene`·`WorksFilm`의 슬롯은 섹션 요소 자체에 붙어 있어
+  `ResourceSlot`으로 바꾸지 않았다. 인트로는 프레임 스크럽, 나머지는 섹션 배경이라
+  재생 방식이 서로 다르다. **자산이 도착할 때 각각에 맞춰 연결한다.**
+- 영상 해상도 검증은 스크립트 범위 밖이다(컨테이너 파싱 필요). 현재는 용량·확장자만
+  본다. 필요해지면 ffprobe를 붙인다.
+- 실제 GPU 성능은 여전히 미측정. SwiftShader 수치는 근거로 쓰지 않았다.
+- AUDIT.md의 미해결 항목(장면 단계 `Math.floor` 즉시 교체, `public` 지점 캔버스 3개,
+  인트로 1300ms 조기 언마운트)은 이번 범위 밖이라 그대로 남아 있다.
+
+**디자인은 완료 판정하지 않았다.** 파티클 미술·영상 합성 강도·캐릭터 크기·OZ 입구
+구도는 §9대로 다음 디자인 검토 단계에 남긴다.
+
 ## 5. 이번 단계에서 하지 말아야 할 작업
 
 - 새 Canvas 또는 별도 Three.js renderer 추가
