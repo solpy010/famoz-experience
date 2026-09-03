@@ -1,6 +1,6 @@
 import { subscribeScroll } from '../scrollBus'
 
-export const JOURNEY_IDS = ['hero', 'mascot', 'what', 'value', 'works', 'ending'] as const
+export const JOURNEY_IDS = ['hero', 'about', 'portal', 'capabilities', 'works', 'ending'] as const
 
 /** 스크롤 이벤트에서는 숫자 하나만 갱신한다. WebGL 루프가 이 값을 보간한다. */
 export class JourneyState {

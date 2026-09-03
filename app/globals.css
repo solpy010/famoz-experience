@@ -782,3 +782,134 @@ body.intro-active [data-reveal].is-visible {
   .hero-light--violet { width: 78vw; left: 38vw; }
   .hero-light--blue { width: 92vw; left: -42vw; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   IA v2 — 고정 메뉴 · Company Proof · Capability + Evidence
+   장식용 bar/dot/line은 두지 않는다. 선은 구획에만 쓴다. (IA §8)
+   ══════════════════════════════════════════════════════════ */
+
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0 }
+
+/* ── 고정 상단 메뉴 ─────────────────────────────────────── */
+.site-nav {
+  position: fixed; inset: 0 0 auto; z-index: var(--z-debug);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 14px clamp(16px, 3vw, 40px);
+  padding-top: max(14px, env(safe-area-inset-top));
+  /* WebGL 암부 위에서도 메뉴가 묻히지 않도록 자체 표면을 갖는다 */
+  background: linear-gradient(180deg, rgba(9,8,14,.82) 0%, rgba(9,8,14,.55) 60%, transparent 100%);
+  backdrop-filter: blur(10px);
+  opacity: 0; transform: translateY(-8px); pointer-events: none;
+  transition: opacity .5s ease, transform .5s ease;
+}
+.site-nav.is-visible { opacity: 1; transform: none; pointer-events: auto }
+.site-nav__brand {
+  display: flex; align-items: baseline; gap: .5rem;
+  font-family: Paperlogy, Pretendard, sans-serif;
+  font-weight: 800; font-size: .95rem; line-height: 1; letter-spacing: .04em;
+  color: #EEE8DF; text-decoration: none;
+}
+.site-nav__brand span { font-family: monospace; font-weight: 500; font-size: .58rem; letter-spacing: .18em; color: #8E7AA8 }
+.site-nav nav { display: flex; gap: clamp(14px, 2vw, 30px) }
+.site-nav nav a {
+  font-size: .82rem; letter-spacing: .02em; text-decoration: none;
+  color: rgba(238,232,223,.62); transition: color .25s ease;
+}
+.site-nav nav a:hover, .site-nav nav a.is-active { color: #EEE8DF }
+.site-nav nav a.is-active { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px }
+.site-nav nav a:focus-visible { outline: 2px solid rgba(238,232,223,.85); outline-offset: 4px; border-radius: 3px }
+.site-nav__toggle { display: none; background: none; border: 0; color: #EEE8DF; font-size: 1.1rem; cursor: pointer; padding: 6px 8px }
+.site-nav__toggle:focus-visible { outline: 2px solid rgba(238,232,223,.85); outline-offset: 2px; border-radius: 3px }
+
+@media (max-width: 767px) {
+  .site-nav { flex-wrap: wrap }
+  .site-nav__toggle { display: block }
+  .site-nav nav {
+    flex-basis: 100%; flex-direction: column; gap: 0;
+    max-height: 0; overflow: hidden; transition: max-height .3s ease;
+  }
+  .site-nav.is-open nav { max-height: 60vh; padding-top: 10px }
+  .site-nav nav a { padding: 11px 2px; font-size: .95rem }
+}
+
+/* 고정 메뉴 높이만큼 해시 이동 지점을 내린다 */
+#about, #portal, #capabilities, #works, #ending { scroll-margin-top: 84px }
+[id^="chapter-"] { scroll-margin-top: 84px }
+
+/* ── Company Proof ─────────────────────────────────────── */
+.proof { position: relative; z-index: var(--z-content); padding-block: clamp(72px, 12vh, 140px) }
+.proof__grid { display: grid; gap: clamp(28px, 5vw, 64px); grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); align-items: center }
+.proof__copy h2 { margin-bottom: 1.6rem }
+.proof__copy h2 span { display: block }
+.proof__scope { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.8rem; padding: 0; list-style: none }
+.proof__scope li {
+  font-size: .74rem; letter-spacing: .02em; color: #C3BCB4;
+  padding: 5px 11px; border: 1px solid rgba(238,232,223,.18); border-radius: 99px;
+}
+.proof__axes { display: grid; gap: 12px; padding: 0; list-style: none; grid-template-columns: repeat(2, minmax(0,1fr)) }
+.proof__axes li { display: flex; flex-direction: column; gap: 3px }
+.proof__axes strong { font-size: .92rem; color: #EEE8DF }
+.proof__axes span { font-size: .78rem; line-height: 1.6; color: #9A948E }
+
+.proof__lead { position: relative; display: block; overflow: hidden; border-radius: 4px; text-decoration: none; aspect-ratio: 4 / 3 }
+.proof__lead img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s cubic-bezier(.4,0,.2,1) }
+.proof__lead:hover img { transform: scale(1.02) }
+.proof__lead:focus-visible { outline: 2px solid rgba(238,232,223,.85); outline-offset: 3px }
+.proof__lead-meta {
+  position: absolute; inset: auto 0 0; display: grid; gap: 5px;
+  padding: clamp(16px, 3vw, 28px);
+  background: linear-gradient(0deg, rgba(6,5,10,.94) 12%, rgba(6,5,10,.72) 58%, transparent 100%);
+}
+.proof__lead-meta em { font-family: monospace; font-weight: 500; font-size: .62rem; letter-spacing: .18em; color: #B6815A; font-style: normal }
+.proof__lead-meta strong { font-size: clamp(1rem, 1.6vw, 1.25rem); color: #EEE8DF; line-height: 1.35 }
+.proof__lead-meta b { font-size: .72rem; font-weight: 400; color: #9A948E }
+.proof__lead-meta p { font-size: .78rem; line-height: 1.7; color: #C3BCB4; margin-top: 3px }
+.proof__lead-meta i { font-style: normal; font-size: .76rem; color: #EEE8DF; margin-top: 5px }
+
+/* ── Capability + Evidence ─────────────────────────────── */
+.cap { position: relative; z-index: var(--z-content); padding-block: clamp(60px, 10vh, 120px) }
+.cap > .shell { margin-bottom: clamp(32px, 6vh, 72px) }
+.cap-list { display: grid; gap: clamp(48px, 9vh, 108px) }
+.cap-item { position: relative }
+.cap-item__grid { display: grid; gap: clamp(24px, 4vw, 56px); grid-template-columns: minmax(0,.92fr) minmax(0,1.08fr); align-items: center }
+.cap-item:nth-child(even) .cap-item__grid { direction: rtl }
+.cap-item:nth-child(even) .cap-item__grid > * { direction: ltr }
+
+.cap-item__eyebrow { display: flex; gap: .8rem; align-items: center; margin-bottom: 1rem; font-family: monospace; font-weight: 600; font-size: .64rem; line-height: 1; letter-spacing: .16em }
+.cap-item__eyebrow span:first-child { color: var(--cap-accent) }
+.cap-item__eyebrow span:last-child { color: rgba(238,232,223,.55) }
+.cap-item__copy h3 span { display: block }
+.cap-item__problem { margin-top: 1rem; font-size: .88rem; color: #C3BCB4 }
+.cap-item__copy .t-body { margin-top: 1rem; max-width: 34ch }
+.cap-item__tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 1.3rem; padding: 0; list-style: none }
+.cap-item__tags li { font-size: .7rem; color: #9A948E; padding: 4px 10px; border: 1px solid rgba(238,232,223,.14); border-radius: 99px }
+.cap-item__more { display: inline-block; margin-top: 1.5rem; font-size: .82rem; color: #EEE8DF; text-decoration: none; border-bottom: 1px solid rgba(238,232,223,.34); padding-bottom: 3px }
+.cap-item__more:focus-visible { outline: 2px solid rgba(238,232,223,.85); outline-offset: 4px }
+
+.cap-item__evidence { position: relative; display: grid; gap: 12px; grid-auto-flow: row }
+.cap-shot { position: relative; display: block; overflow: hidden; border-radius: 4px; text-decoration: none; aspect-ratio: 16 / 9 }
+.cap-shot img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s cubic-bezier(.4,0,.2,1) }
+.cap-shot:hover img { transform: scale(1.02) }
+.cap-shot:focus-visible { outline: 2px solid rgba(238,232,223,.85); outline-offset: 3px }
+.cap-shot span {
+  position: absolute; inset: auto 0 0; display: grid; gap: 2px; padding: 14px 16px;
+  background: linear-gradient(0deg, rgba(6,5,10,.92) 10%, transparent 100%);
+}
+.cap-shot strong { font-size: .88rem; color: #EEE8DF; line-height: 1.35 }
+.cap-shot em { font-style: normal; font-size: .7rem; color: #9A948E }
+.cap-shot b { font-size: .7rem; font-weight: 400; color: var(--cap-accent) }
+/* 캐릭터는 표지판이다. 증거 이미지보다 앞서 읽히지 않게 낮춘다. */
+.cap-item__guide { position: absolute; right: -2%; bottom: -4%; width: clamp(84px, 11vw, 148px); opacity: .5; pointer-events: none; filter: drop-shadow(0 8px 26px rgba(6,5,10,.6)) }
+
+@media (max-width: 900px) {
+  .proof__grid, .cap-item__grid { grid-template-columns: minmax(0,1fr) }
+  .cap-item:nth-child(even) .cap-item__grid { direction: ltr }
+  .proof__axes { grid-template-columns: minmax(0,1fr) }
+  .cap-item__guide { width: 76px; right: 2%; bottom: auto; top: -46px; opacity: .42 }
+  .proof__lead { aspect-ratio: 3 / 2 }
+}
+
+/* 장식 레이어(hero-light, 클라이언트 스트립 등)가 문서를 가로로 넓히고 있었다.
+   그 폭이 고정 요소의 컨테이닝 블록이 되어 상단 메뉴까지 화면 밖으로 밀렸다.
+   overflow-x: hidden 은 sticky 를 깨므로 clip 을 쓴다. */
+html { overflow-x: clip }

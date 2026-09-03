@@ -26,19 +26,24 @@ const shot = (
   },
 })
 
-type Project = {
+export type Project = {
   id: string
   title: string
   desc: string
   field: string
   tags: string[]
+  /* 아래 셋은 확인된 자료가 없어 비어 있다. 값이 들어오면 화면에 나타난다.
+     추정해서 채우지 않는다. */
+  place?: string
+  year?: string
+  famozRole?: string
   accent: string
   shadeTop: string
   shadeBottom: string
   images: ProjectImage[]
 }
 
-const PROJECTS: Project[] = [
+export const PROJECTS: Project[] = [
   {
     id: 'expo',
     title: '2025 오사카·간사이 엑스포 한국관',
@@ -128,8 +133,8 @@ const PROJECTS: Project[] = [
 ]
 
 // Total scroll = sum of (images.length * SLIDE_VH) per project + HEADER_VH
-const SLIDE_VH = 120  // vh per image slide
-const HEADER_VH = 60  // vh for the section header
+const SLIDE_VH = 55   // 이미지 한 장당 체류. 120은 한 장을 1.2화면 동안 붙잡았다
+const HEADER_VH = 40  // 섹션 헤더
 
 function getProjectRanges() {
   let offset = HEADER_VH

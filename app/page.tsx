@@ -2,14 +2,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import IntroSequence from '@/components/IntroSequence'
 import HeroScene from '@/components/HeroScene'
-import WhatWeCreate from '@/components/WhatWeCreate'
-import ValueScene from '@/components/ValueScene'
-import PublicValue from '@/components/PublicValue'
 import WorksFilm from '@/components/WorksFilm'
-import MascotScene from '@/components/MascotScene'
 import EndingScene from '@/components/EndingScene'
 import OzPortalHub from '@/components/OzPortalHub'
-import ChapterNavigation from '@/components/ChapterNavigation'
+import CompanyProof from '@/components/CompanyProof'
+import CapabilityEvidence from '@/components/CapabilityEvidence'
+import SiteNav from '@/components/SiteNav'
 import SectionBackdrop from '@/components/SectionBackdrop'
 import VisualSystemCanvas, { type VisualStats } from '@/components/visual/VisualSystemCanvas'
 import PerfOverlay from '@/components/visual/PerfOverlay'
@@ -84,15 +82,14 @@ export default function Home() {
         />
       </VisualErrorBoundary>
       {!introComplete && <IntroSequence onEntered={handleEntered} />}
-      <ChapterNavigation visible={introComplete} />
+      <SiteNav visible={introComplete} />
 
-      <main data-experience-schema="famoz-oz-v1">
+      <main data-experience-schema="famoz-ia-v2">
         <HeroScene introComplete={introComplete} />
+        {/* 선언 → 증거 순서. 첫 증거를 19.6화면 뒤가 아니라 여기서 만난다. */}
+        <CompanyProof />
         <OzPortalHub />
-        <MascotScene />
-        <WhatWeCreate />
-        <ValueScene />
-        <PublicValue />
+        <CapabilityEvidence />
         <WorksFilm />
         <EndingScene />
       </main>

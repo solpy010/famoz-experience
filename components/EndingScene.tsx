@@ -142,7 +142,7 @@ export default function EndingScene() {
 
         {/* Team — grouped container reveal */}
         <div style={{ marginTop: 'clamp(3rem, 6vw, 5rem)' }}>
-          <h3 style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1rem)', fontWeight: 700 }}>팀</h3>
+          <h3 id="process" style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1rem)', fontWeight: 700, scrollMarginTop: '84px' }}>팀</h3>
           <div
             data-reveal
             className="team-system"
